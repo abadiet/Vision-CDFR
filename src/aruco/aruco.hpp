@@ -5,15 +5,19 @@
 #include <opencv2/aruco.hpp>
 #include <map>
 
-#define ARUCO_CENTER_TOPLEFT 23
-#define ARUCO_CENTER_TOPRIGHT 22
-#define ARUCO_CENTER_BOTTOMLEFT 21
-#define ARUCO_CENTER_BOTTOMRIGHT 20
-
 
 class Arucos {
 
     public:
+        enum {
+            CENTER_TOP_LEFT = 23,
+            CENTER_TOP_RIGHT = 22,
+            CENTER_BOTTOM_RIGHT = 21,
+            CENTER_BOTTOM_LEFT = 20,
+            ROBOTS_MIN = 1,
+            ROBOTS_MAX = 10
+        };
+
         Arucos(cv::Mat& image);
 
         cv::Point2f& operator[](int id);
@@ -28,8 +32,6 @@ class Arucos {
         static const cv::aruco::DetectorParameters detectorParams;
         static const cv::aruco::ArucoDetector detector;
         static const std::vector<cv::Point2f> dst;
-
-        void detectMarkers();
 
         std::map<int, cv::Point2f> arucos;
         cv::Mat& image;

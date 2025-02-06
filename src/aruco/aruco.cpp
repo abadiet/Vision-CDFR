@@ -51,19 +51,14 @@ void Arucos::warp(cv::Mat& output, bool updateArucos) {
     std::vector<cv::Point2f> src(4), centers;
     unsigned int i;
 
-    if (
-        arucos.find(ARUCO_CENTER_TOPLEFT) == arucos.end() ||
-        arucos.find(ARUCO_CENTER_TOPRIGHT) == arucos.end() ||
-        arucos.find(ARUCO_CENTER_BOTTOMLEFT) == arucos.end() ||
-        arucos.find(ARUCO_CENTER_BOTTOMRIGHT) == arucos.end()
-    ) {
+    try {
+        src[0] = arucos.at(Arucos::CENTER_TOP_LEFT);
+        src[1] = arucos.at(Arucos::CENTER_TOP_RIGHT);
+        src[2] = arucos.at(Arucos::CENTER_BOTTOM_LEFT);
+        src[3] = arucos.at(Arucos::CENTER_BOTTOM_RIGHT);
+    } catch (const std::runtime_error& e) {
         throw std::runtime_error("Not all center markers found!");
     }
-
-    src[0] = arucos[ARUCO_CENTER_TOPLEFT];
-    src[1] = arucos[ARUCO_CENTER_TOPRIGHT];
-    src[2] = arucos[ARUCO_CENTER_BOTTOMLEFT];
-    src[3] = arucos[ARUCO_CENTER_BOTTOMRIGHT];
 
     transformMatrix = cv::getPerspectiveTransform(src, dst);
     cv::warpPerspective(image, output, transformMatrix, cv::Size(3000, 2000));

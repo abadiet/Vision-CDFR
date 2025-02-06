@@ -6,7 +6,7 @@
 
 
 int main(int argc, char** argv) {
-    cv::Mat base, image, tmp;
+    cv::Mat base, image, frame;
     std::vector<Planks::plank> planks;
     std::vector<std::vector<cv::Point>> contours;
 
@@ -28,16 +28,15 @@ int main(int argc, char** argv) {
     Arucos baseArucos(base);
     baseArucos.warp(base);
 
-    Arucos arucos(image);
-    arucos.warp(image);
-
     auto start = std::chrono::high_resolution_clock::now();
 
     for (int i = 0; i < 100; i++) {
-        tmp = image.clone();
-        arucos.warp(tmp);
+        frame = image.clone();
 
-        planks = Planks::Get(base, tmp);
+        Arucos arucos(frame);
+        arucos.warp(frame);
+
+        planks = Planks::Get(base, frame, arucos);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
