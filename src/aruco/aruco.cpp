@@ -1,20 +1,23 @@
 #include "aruco.hpp"
 
-void getArucos(cv::Mat& image, arucos_t& arucos, bool draw) {
-    std::vector<int> ids;
-    std::vector<std::vector<cv::Point2f>> corners, rejectedCandidates;
+
+const cv::aruco::Dictionary Arucos::dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+const cv::aruco::DetectorParameters Arucos::detectorParams = cv::aruco::DetectorParameters();
+const cv::aruco::ArucoDetector Arucos::detector = cv::aruco::ArucoDetector(dictionary, detectorParams);
+const std::vector<cv::Point2f> Arucos::dst = {
+    cv::Point2f(2400, 600),
+    cv::Point2f(600, 600),
+    cv::Point2f(2400, 1400),
+    cv::Point2f(600, 1400)
+};
+
+Arucos::Arucos(cv::Mat& image) :
+    image(image)
+{
     unsigned int i;
 
-    cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-    cv::aruco::DetectorParameters detectorParams = cv::aruco::DetectorParameters();
-    cv::aruco::ArucoDetector detector(dictionary, detectorParams);
     detector.detectMarkers(image, corners, ids, rejectedCandidates);
 
-    if (draw) {
-        cv::aruco::drawDetectedMarkers(image, corners, ids);
-    }
-
-    arucos.clear();
     for (i = 0; i < ids.size(); ++i) {
         cv::Point2f center(0, 0);
         for (cv::Point2f& corner : corners[i]) {
@@ -23,5 +26,57 @@ void getArucos(cv::Mat& image, arucos_t& arucos, bool draw) {
         center /= 4;
 
         arucos[ids[i]] = center;
+    }
+}
+
+cv::Point2f& Arucos::operator[](int id) {
+    return arucos.at(id);
+}
+
+void Arucos::draw(cv::Mat& input) {
+    if (cornersOutdated) {
+        for (const std::vector<cv::Point2f>& c : corners) {
+            cv::perspectiveTransform(c, c, transformMatrix);
+        }
+        cornersOutdated = false;
+    }
+    cv::aruco::drawDetectedMarkers(input, corners, ids);
+}
+
+void Arucos::warp(bool updateArucos) {
+    warp(image, updateArucos);
+}
+
+void Arucos::warp(cv::Mat& output, bool updateArucos) {
+    std::vector<cv::Point2f> src(4), centers;
+    unsigned int i;
+
+    if (
+        arucos.find(ARUCO_CENTER_TOPLEFT) == arucos.end() ||
+        arucos.find(ARUCO_CENTER_TOPRIGHT) == arucos.end() ||
+        arucos.find(ARUCO_CENTER_BOTTOMLEFT) == arucos.end() ||
+        arucos.find(ARUCO_CENTER_BOTTOMRIGHT) == arucos.end()
+    ) {
+        throw std::runtime_error("Not all center markers found!");
+    }
+
+    src[0] = arucos[ARUCO_CENTER_TOPLEFT];
+    src[1] = arucos[ARUCO_CENTER_TOPRIGHT];
+    src[2] = arucos[ARUCO_CENTER_BOTTOMLEFT];
+    src[3] = arucos[ARUCO_CENTER_BOTTOMRIGHT];
+
+    transformMatrix = cv::getPerspectiveTransform(src, dst);
+    cv::warpPerspective(image, output, transformMatrix, cv::Size(3000, 2000));
+
+    if (updateArucos) {
+        for (const std::pair<const int, cv::Point2f>& aruco : arucos) {
+            centers.push_back(aruco.second);
+        }
+        cv::perspectiveTransform(centers, centers, transformMatrix);
+        for (i = 0; i < centers.size(); ++i) {
+            arucos[ids[i]] = centers[i];
+        }
+
+        cornersOutdated = true;
     }
 }

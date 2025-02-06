@@ -3,14 +3,19 @@
 
 #include <opencv2/opencv.hpp>
 #include <vector>
+#include <iostream>
 
 
-typedef struct {
-    cv::Point2f center;
-    cv::Point2f direction;
-} plank_t;
+class Planks {
 
-void getPlanks(cv::Mat& base, cv::Mat& image, std::vector<plank_t>& planks, std::vector<std::vector<cv::Point>>* contours = nullptr);
-void printPlanks(cv::Mat& image, std::vector<plank_t>& planks, std::vector<std::vector<cv::Point>>* contours = nullptr);
+    public:
+        struct plank {
+            cv::Point2f center;
+            cv::Point2f direction;
+        };
+
+        static std::vector<plank> Get(cv::Mat& base, cv::Mat& image, std::vector<std::vector<cv::Point>>* contours = nullptr);
+        static void Draw(cv::Mat& image, std::vector<plank>& planks, std::vector<std::vector<cv::Point>>* contours = nullptr);
+};
 
 #endif /* PLANK_HPP */

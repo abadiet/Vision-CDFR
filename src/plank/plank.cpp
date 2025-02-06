@@ -17,9 +17,10 @@ void getFilteredImage(cv::Mat& base, cv::Mat& image, cv::Mat& filtered) {
     cv::threshold(filtered, filtered, 25, 255, cv::THRESH_BINARY);
 }
 
-void getPlanks(cv::Mat& base, cv::Mat& image, std::vector<plank_t>& planks, std::vector<std::vector<cv::Point>>* contours) {
+std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, std::vector<std::vector<cv::Point>>* contours) {
     cv::Mat filtered, canny_output;
-    plank_t plank;
+    std::vector<Planks::plank> planks;
+    Planks::plank plank;
     std::vector<std::vector<cv::Point>> conts;
 
     getFilteredImage(base, image, filtered);
@@ -27,7 +28,6 @@ void getPlanks(cv::Mat& base, cv::Mat& image, std::vector<plank_t>& planks, std:
     cv::Canny(filtered, canny_output, 250, 250);
     cv::findContours(canny_output, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-    planks.clear();
     for (std::vector<cv::Point>& contour : conts) {
         cv::approxPolyDP(contour, contour, 20, true);
         if (contour.size() == 4 && cv::isContourConvex(contour)) {
@@ -51,10 +51,12 @@ void getPlanks(cv::Mat& base, cv::Mat& image, std::vector<plank_t>& planks, std:
             }
         }
     }
+
+    return planks;
 }
 
-void printPlanks(cv::Mat& image, std::vector<plank_t>& planks, std::vector<std::vector<cv::Point>>* contours) {
-    for (plank_t& plank : planks) {
+void Planks::Draw(cv::Mat& image, std::vector<Planks::plank>& planks, std::vector<std::vector<cv::Point>>* contours) {
+    for (Planks::plank& plank : planks) {
         cv::line(image, plank.center, plank.center + plank.direction * 100, cv::Scalar(0, 0, 255), 2);
         std::cout << "Plank at " << plank.center << " with direction " << plank.direction << std::endl;
     }

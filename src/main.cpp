@@ -5,13 +5,9 @@
 #include "plank/plank.hpp"
 
 
-void warpImage(cv::Mat& image, arucos_t& arucos, cv::Mat& warpedImage);
-
-
 int main(int argc, char** argv) {
-    cv::Mat base, image;
-    arucos_t arucos;
-    std::vector<plank_t> planks;
+    cv::Mat base, image, tmp;
+    std::vector<Planks::plank> planks;
     std::vector<std::vector<cv::Point>> contours;
 
     if ( argc != 3 ) {
@@ -29,45 +25,28 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    getArucos(image, arucos);
-    warpImage(image, arucos, image);
+    Arucos baseArucos(base);
+    baseArucos.warp(base);
 
-    getArucos(base, arucos);
-    warpImage(base, arucos, base);
+    Arucos arucos(image);
+    arucos.warp(image);
 
-    getPlanks(base, image, planks, &contours);
+    auto start = std::chrono::high_resolution_clock::now();
 
-    printPlanks(image, planks, &contours);
-    cv::imshow("Planks", image);
-    cv::waitKey(0);
+    for (int i = 0; i < 100; i++) {
+        tmp = image.clone();
+        arucos.warp(tmp);
 
-    return 0;
-}
-
-
-void warpImage(cv::Mat& image, arucos_t& arucos, cv::Mat& warpedImage) {
-    std::vector<cv::Point2f> src(4), dst(4);
-    cv::Mat transformMatrix;
-
-    if (
-        arucos.find(ARUCO_CENTER_TOPLEFT) == arucos.end() ||
-        arucos.find(ARUCO_CENTER_TOPRIGHT) == arucos.end() ||
-        arucos.find(ARUCO_CENTER_BOTTOMLEFT) == arucos.end() ||
-        arucos.find(ARUCO_CENTER_BOTTOMRIGHT) == arucos.end()
-    ) {
-        throw std::runtime_error("Not all center markers found!");
+        planks = Planks::Get(base, tmp);
     }
 
-    src[0] = arucos[ARUCO_CENTER_TOPLEFT];
-    src[1] = arucos[ARUCO_CENTER_TOPRIGHT];
-    src[2] = arucos[ARUCO_CENTER_BOTTOMLEFT];
-    src[3] = arucos[ARUCO_CENTER_BOTTOMRIGHT];
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "Execution time: " << elapsed.count() / 100.0 << " seconds" << std::endl;
 
-    dst[0] = cv::Point2f(2400, 600);
-    dst[1] = cv::Point2f(600, 600);
-    dst[2] = cv::Point2f(2400, 1400);
-    dst[3] = cv::Point2f(600, 1400);
+    // printPlanks(image, planks, &contours);
+    // cv::imshow("Planks", image);
+    // cv::waitKey(0);
 
-    transformMatrix = cv::getPerspectiveTransform(src, dst);
-    cv::warpPerspective(image, warpedImage, transformMatrix, cv::Size(3000, 2000));
+    return 0;
 }
