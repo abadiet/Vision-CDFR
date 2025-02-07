@@ -39,8 +39,7 @@ int main(int argc, char** argv) {
 
         planks = Planks::Get(base, frame, arucos, &contours);
         Planks::Draw(frame, planks, &contours);
-        cv::imshow("Planks", frame);
-        cv::waitKey(0);
+        showImage("Result", frame);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
