@@ -3,6 +3,12 @@
 #define PLANK_EPSI 0.9
 #define PLANK_L 400 * PLANK_EPSI
 #define PLANK_l 100 * PLANK_EPSI
+#define PLANK_DIAGONAL (float) sqrt(PLANK_L * PLANK_L + PLANK_l * PLANK_l)
+#define PLANK_DIAGONAL_ANGLE (float) atan(PLANK_l / PLANK_L)
+#define PLANK_DIAGONAL_ANGLE_COS (float) cos(PLANK_DIAGONAL_ANGLE)
+#define PLANK_DIAGONAL_ANGLE_SIN (float) sin(PLANK_DIAGONAL_ANGLE)
+#define N_CONTROL_POINTS 18
+#define N_CONTROL_POINTS_THRESHOLD 2
 #define MIN_PLANK_AREA PLANK_L * PLANK_l
 #define MAX_PLANK_AREA PLANK_L * PLANK_l
 #define MAX_DST_ROBOTS_PLANK 100
@@ -21,26 +27,55 @@ void getFilteredImage(cv::Mat& base, cv::Mat& image, cv::Mat& filtered) {
     cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41)));
 }
 
-void getFullLine(cv::Point2f& p1, cv::Point2f& p2, std::vector<cv::Point>& contour, float step) {
-    const cv::Point2f line = p2 - p1;
-    const cv::Point2f direction = line / cv::norm(line);
-    float k = 1.0f;
-    while (cv::pointPolygonTest(contour, p2 + direction * k * step, false) >= 0) {
-        k++;
+bool findPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold) {
+    unsigned int missed, i;
+    short int rectSens, diagSens;
+    const float step = PLANK_DIAGONAL / Nchecks;
+
+    for (rectSens = -1; rectSens <= 1; rectSens += 2) {
+        missed = 0;
+
+        for (diagSens = -1; diagSens <= 1; diagSens += 2) {
+            const cv::Point2f line = diagSens * (p1 - p2);
+            const cv::Point2f lineNorm = line / cv::norm(line);
+            const cv::Point2f start = (diagSens < 0) ? p1 : p1 - lineNorm * PLANK_L;
+            const cv::Point2f direction = cv::Point2f(
+                lineNorm.x * PLANK_DIAGONAL_ANGLE_COS - lineNorm.y * diagSens * rectSens * PLANK_DIAGONAL_ANGLE_SIN,
+                lineNorm.x * diagSens * rectSens * PLANK_DIAGONAL_ANGLE_SIN + lineNorm.y * PLANK_DIAGONAL_ANGLE_COS
+            );
+
+            i = 0;
+            while (i < Nchecks && missed < threshold) {
+                const cv::Point2f p = start + direction * (float) i * step;
+                if (cv::pointPolygonTest(contour, p, false) < 0) {
+                    missed++;
+                    if (missed >= threshold) {
+                        break;
+                    }
+                }
+                i++;
+            }
+
+            if (missed >= threshold) {
+                break;
+            }
+        }
+
+        if (missed < threshold) {
+            const cv::Point2f line = (p2 - p1) / cv::norm(p2 - p1);
+            plank.center = p1 + line * PLANK_L / 2.0f + cv::Point2f(rectSens * line.y, -1 * rectSens * line.x) * PLANK_l / 2.0f;
+            plank.direction = line;
+            return true;
+        }
     }
-    p2 = p2 + direction * (k - 1) * step;
-    float j = 1.0f;
-    while (cv::pointPolygonTest(contour, p1 - direction * j * step, false) >= 0) {
-        j++;
-    }
-    p1 = p1 - direction * (j - 1) * step;
+    return false;
 }
 
 std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours) {
     cv::Mat filtered, canny_output;
     std::vector<Planks::plank> planks;
     Planks::plank plank;
-    std::vector<std::vector<cv::Point>> conts, newconts;
+    std::vector<std::vector<cv::Point>> conts;
     std::vector<cv::Point2f> robotsPos;
     // bool isRobot;
     unsigned int i, j;
@@ -66,33 +101,21 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
         const double area = cv::contourArea(contour);
         if (area >= MIN_PLANK_AREA) {
             for (i = 0; i < contour.size(); i++) {
-                const float step = 10.0f;
+                const cv::Point2f p1 = contour[i];
+                const cv::Point2f p2 = contour[(i + 1) % contour.size()];
 
-                cv::Point2f p1 = contour[i];
-                cv::Point2f p2 = contour[(i + 1) % contour.size()];
-                getFullLine(p1, p2, contour, step);
-                const cv::Point2f fullLine = p2 - p1;
-                const double lenght = cv::norm(fullLine);
-                if (lenght >= PLANK_L) {
-                    const cv::Point2f centerLine = (p1 + p2) / 2;
+                if (findPossiblePlank(plank, p1, p2, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                    planks.push_back(plank);
 
-                    for (short int sens = 1; sens >= -1; sens -= 2) {
-                        const cv::Point2f Plank_l = (cv::Point2f(-1 * sens * fullLine.y, sens * fullLine.x) / lenght) * PLANK_l;
-                        const cv::Point2f centerOpposite = centerLine + Plank_l;
-                        if (cv::pointPolygonTest(contour, centerOpposite, false) > 0) {
-                            plank.center = centerLine + Plank_l / 2.0;
-                            plank.direction = fullLine / lenght;
-                            planks.push_back(plank);
+                    if (contours != nullptr) {
+                        contours->push_back(contour);
+                    }
+                } else {
+                    if (findPossiblePlank(plank, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                        planks.push_back(plank);
 
-                            if (contours != nullptr) {
-                                contours->push_back(contour);
-                            }
-
-                            // cv::line(image, p1, p2, cv::Scalar(255, 0, 0), 2);
-                            // Planks::Draw(image, planks);
-                            // showImage("Oui", image);
-
-                            break;
+                        if (contours != nullptr) {
+                            contours->push_back(contour);
                         }
                     }
                 }
@@ -104,7 +127,7 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
         Planks::plank& plank = planks[i];
         for (j = i + 1; j < planks.size(); j++) {
             const Planks::plank& p = planks[j];
-            if (cv::norm(p.center - plank.center) < PLANK_l / 2.0f) {
+            if (cv::norm(p.center - plank.center) < PLANK_l) {
                 if  (cv::norm(p.direction - plank.direction) < 0.1) {
                     plank.center = (plank.center + p.center) / 2;
                     plank.direction = (plank.direction + p.direction) / 2;
@@ -128,6 +151,7 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
 void Planks::Draw(cv::Mat& image, std::vector<Planks::plank>& planks, std::vector<std::vector<cv::Point>>* contours) {
     for (Planks::plank& plank : planks) {
         cv::line(image, plank.center, plank.center + plank.direction * 100, cv::Scalar(0, 0, 255), 2);
+        cv::circle(image, plank.center, 5, cv::Scalar(0, 0, 255), -1);
         std::cout << "Plank at " << plank.center << " with direction " << plank.direction << std::endl;
     }
     if (contours != nullptr) {  

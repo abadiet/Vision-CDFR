@@ -5,11 +5,13 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
+#define NTESTS 50
+
 
 int main(int argc, char** argv) {
     cv::Mat base, image, frame;
     std::vector<Planks::plank> planks;
-    std::vector<std::vector<cv::Point>> contours;
+    // std::vector<std::vector<cv::Point>> contours;
 
     if ( argc != 3 ) {
         std::cout << "usage: Vision <base_image> <image>" << std::endl;
@@ -31,24 +33,18 @@ int main(int argc, char** argv) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < NTESTS; i++) {
         frame = image.clone();
 
         Arucos arucos(frame);
         arucos.warp(frame);
 
-        planks = Planks::Get(base, frame, arucos, &contours);
-        Planks::Draw(frame, planks, &contours);
-        showImage("Result", frame);
+        planks = Planks::Get(base, frame, arucos);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Execution time: " << elapsed.count() / 1.0 << " seconds" << std::endl;
-
-    // printPlanks(image, planks, &contours);
-    // cv::imshow("Planks", image);
-    // cv::waitKey(0);
+    std::cout << "Execution time: " << elapsed.count() / NTESTS << " seconds" << std::endl;
 
     return 0;
 }
