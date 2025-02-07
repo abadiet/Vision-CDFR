@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include "../aruco/aruco.hpp"
+#include "../utils/utils.hpp"
 
 
 class Planks {

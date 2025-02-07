@@ -5,11 +5,16 @@ const cv::aruco::Dictionary Arucos::dictionary = cv::aruco::getPredefinedDiction
 const cv::aruco::DetectorParameters Arucos::detectorParams = cv::aruco::DetectorParameters();
 const cv::aruco::ArucoDetector Arucos::detector = cv::aruco::ArucoDetector(dictionary, detectorParams);
 const std::vector<cv::Point2f> Arucos::dst = {
+    cv::Point2f(2400, 1400),
+    cv::Point2f(600, 1400),
+    cv::Point2f(600, 600),
+    cv::Point2f(2400, 600)
+};/*    SUR UNE VRAIE TABLE
     cv::Point2f(2400, 600),
     cv::Point2f(600, 600),
     cv::Point2f(2400, 1400),
     cv::Point2f(600, 1400)
-};
+}*/
 
 Arucos::Arucos(cv::Mat& image) :
     image(image)
@@ -56,7 +61,7 @@ void Arucos::warp(cv::Mat& output, bool updateArucos) {
         src[1] = arucos.at(Arucos::CENTER_TOP_RIGHT);
         src[2] = arucos.at(Arucos::CENTER_BOTTOM_LEFT);
         src[3] = arucos.at(Arucos::CENTER_BOTTOM_RIGHT);
-    } catch (const std::runtime_error& e) {
+    } catch (const std::out_of_range& e) {
         throw std::runtime_error("Not all center markers found!");
     }
 

@@ -1,5 +1,5 @@
-#ifndef ARUCO_ARUCO_HPP
-#define ARUCO_ARUCO_HPP
+#ifndef ARUCO_HPP
+#define ARUCO_HPP
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>

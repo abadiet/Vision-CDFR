@@ -3,6 +3,7 @@
 #include <iostream>
 #include "aruco/aruco.hpp"
 #include "plank/plank.hpp"
+#include "utils/utils.hpp"
 
 
 int main(int argc, char** argv) {
@@ -30,18 +31,21 @@ int main(int argc, char** argv) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 1; i++) {
         frame = image.clone();
 
         Arucos arucos(frame);
         arucos.warp(frame);
 
-        planks = Planks::Get(base, frame, arucos);
+        planks = Planks::Get(base, frame, arucos, &contours);
+        Planks::Draw(frame, planks, &contours);
+        cv::imshow("Planks", frame);
+        cv::waitKey(0);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Execution time: " << elapsed.count() / 100.0 << " seconds" << std::endl;
+    std::cout << "Execution time: " << elapsed.count() / 1.0 << " seconds" << std::endl;
 
     // printPlanks(image, planks, &contours);
     // cv::imshow("Planks", image);

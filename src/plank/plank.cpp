@@ -8,12 +8,16 @@
 
 
 void getFilteredImage(cv::Mat& base, cv::Mat& image, cv::Mat& filtered) {
+    /* difference between the images */
     cv::absdiff(base, image, filtered);
     cv::cvtColor(filtered, filtered, cv::COLOR_BGR2GRAY);
-    cv::morphologyEx(filtered, filtered, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5)));
     cv::threshold(filtered, filtered, 50, 255, cv::THRESH_BINARY);
-    cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(61, 61)));
-    cv::threshold(filtered, filtered, 25, 255, cv::THRESH_BINARY);
+
+    /* remove the alone pixels */
+    cv::morphologyEx(filtered, filtered, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5)));
+
+    /* fill the surfaces */
+    cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41)));
 }
 
 std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours) {
