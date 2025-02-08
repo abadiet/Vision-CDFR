@@ -1,23 +1,16 @@
 #include "plank.hpp"
 
-#define PLANK_EPSI 0.9
-#define PLANK_L 400 * PLANK_EPSI
-#define PLANK_l 100 * PLANK_EPSI
 #define PLANK_DIAGONAL (float) sqrt(PLANK_L * PLANK_L + PLANK_l * PLANK_l)
 #define PLANK_DIAGONAL_ANGLE (float) atan(PLANK_l / PLANK_L)
 #define PLANK_DIAGONAL_ANGLE_COS (float) cos(PLANK_DIAGONAL_ANGLE)
 #define PLANK_DIAGONAL_ANGLE_SIN (float) sin(PLANK_DIAGONAL_ANGLE)
-#define N_CONTROL_POINTS 18
-#define N_CONTROL_POINTS_THRESHOLD 2
 #define MIN_PLANK_AREA PLANK_L * PLANK_l
 #define MAX_PLANK_AREA PLANK_L * PLANK_l
-
-#define MIN_DST_ROBOTS_PLANK 200
-#define ROBOTS_RADIUS 150
-#define ROBOTS_HEIGHT 450
+#define ROBOTS_RATIO ROBOTS_HEIGHT / ROBOTS_ARUCO_Z
 
 
-void getFilteredImage(cv::Mat& base, cv::Mat& image, cv::Mat& filtered) {
+void getFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered) {
+    cv::Point2f distortion;
     unsigned int i;
 
     /* difference between the images */
@@ -25,14 +18,15 @@ void getFilteredImage(cv::Mat& base, cv::Mat& image, cv::Mat& filtered) {
     cv::cvtColor(filtered, filtered, cv::COLOR_BGR2GRAY);
     cv::threshold(filtered, filtered, 50, 255, cv::THRESH_BINARY);
     
-    /* remove the robots */
+    /* hide the robots */
     for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
         try {
-            const cv::Point2f robot = arucos[(int) i];
-            const cv::Point2f line = robot - CAMERA_POS;
-            cv::circle(filtered, robot, ROBOTS_RADIUS, cv::Scalar(0), -1);
-
-
+            arucos.getDistortion((int) i, distortion);
+            const cv::Point2f& robotBottom = arucos[(int) i];
+            const cv::Point2f& robotTop = robotBottom + distortion * ROBOTS_RATIO;
+            cv::circle(filtered, robotBottom, ROBOTS_RADIUS, cv::Scalar(0), -1);
+            cv::line(filtered, robotBottom, robotTop, cv::Scalar(0), 2 * ROBOTS_RADIUS);
+            cv::circle(filtered, robotTop, ROBOTS_RADIUS, cv::Scalar(0), -1);
         } catch (const std::out_of_range& e) {
             /* robot not found */
         }
@@ -97,7 +91,7 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
     std::vector<cv::Point2f> robotsPos;
     unsigned int i, j;
 
-    getFilteredImage(base, image, filtered);
+    getFilteredImage(base, image, arucos, filtered);
 
     cv::Canny(filtered, canny_output, 250, 250);
     cv::findContours(canny_output, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);

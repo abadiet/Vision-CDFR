@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <map>
+#include "../utils/utils.hpp"
 
 
 class Arucos {
@@ -21,11 +22,14 @@ class Arucos {
         Arucos(cv::Mat& image);
 
         cv::Point2f& operator[](int id);
+        cv::Point2f& getPosition(int id, bool rawPosition = false);
 
         void draw(cv::Mat& input);
 
         void warp(bool updateArucos = true);
         void warp(cv::Mat& output, bool updateArucos = true);
+
+        void getDistortion(int id, cv::Point2f& distortion);
 
     private:
         static const cv::aruco::Dictionary dictionary;
@@ -34,6 +38,7 @@ class Arucos {
         static const std::vector<cv::Point2f> dst;
 
         std::map<int, cv::Point2f> arucos;
+        std::map<int, cv::Point2f> realPos;
         cv::Mat& image;
         bool cornersOutdated;
         std::vector<int> ids;

@@ -1,5 +1,6 @@
 #include "aruco.hpp"
 
+#define ROBOTS_RATIO (1 - ROBOTS_ARUCO_Z / CAMERA_Z)
 
 const cv::aruco::Dictionary Arucos::dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
 const cv::aruco::DetectorParameters Arucos::detectorParams = cv::aruco::DetectorParameters();
@@ -23,7 +24,7 @@ Arucos::Arucos(cv::Mat& image) :
 
     detector.detectMarkers(image, corners, ids, rejectedCandidates);
 
-    for (i = 0; i < ids.size(); ++i) {
+    for (i = 0; i < ids.size(); i++) {
         cv::Point2f center(0, 0);
         for (cv::Point2f& corner : corners[i]) {
             center += corner;
@@ -31,14 +32,28 @@ Arucos::Arucos(cv::Mat& image) :
         center /= 4;
 
         arucos[ids[i]] = center;
+
+        if (ids[i] < Arucos::ROBOTS_MIN || ids[i] > Arucos::ROBOTS_MAX) {
+            realPos[ids[i]] = center;
+        }
     }
 }
 
 cv::Point2f& Arucos::operator[](int id) {
-    if (arucos.find(id) == arucos.end()) {
+    return this->getPosition(id, false);
+}
+
+cv::Point2f& Arucos::getPosition(int id, bool rawPosition) {
+    if (rawPosition) {
+        if (arucos.find(id) == arucos.end()) {
+            throw std::out_of_range("Arucos::operator[] for id " + std::to_string(id));
+        }
+        return arucos[id];
+    }
+    if (realPos.find(id) == realPos.end()) {
         throw std::out_of_range("Arucos::operator[] for id " + std::to_string(id));
     }
-    return arucos[id];
+    return realPos[id];
 }
 
 void Arucos::draw(cv::Mat& input) {
@@ -78,14 +93,19 @@ void Arucos::warp(cv::Mat& output, bool updateArucos) {
         cv::perspectiveTransform(centers, centers, transformMatrix);
         i = 0;
         for (std::pair<const int, cv::Point2f>& aruco : arucos) {
+            aruco.second = centers[i];
             if (aruco.first < Arucos::ROBOTS_MIN || aruco.first > Arucos::ROBOTS_MAX) {
-                aruco.second = centers[i++];
+                realPos[aruco.first] = centers[i];
             } else {
-                aruco.second = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO;
-                i++;
+                realPos[aruco.first] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO;
             }
+            i++;
         }
 
         cornersOutdated = true;
     }
+}
+
+void Arucos::getDistortion(int id, cv::Point2f& distortion) {
+    distortion = this->getPosition(id, true) - this->getPosition(id, false);
 }

@@ -6,9 +6,19 @@
 #define CAMERA_POS cv::Point2f(1530.0f, 2000.0f) /* TODO to change on a real table */
 #define CAMERA_Z 1370.0f
 #define ROBOTS_ARUCO_Z 450.0f
-#define ROBOTS_RATIO (1 - ROBOTS_ARUCO_Z / CAMERA_Z)
+
+#define PLANK_EPSI 0.95f
+#define PLANK_L 400.0f * PLANK_EPSI
+#define PLANK_l 100.0f * PLANK_EPSI
+#define N_CONTROL_POINTS 18
+#define N_CONTROL_POINTS_THRESHOLD 2
+
+#define MIN_DST_ROBOTS_PLANK 200.0f
+#define ROBOTS_RADIUS 150
+#define ROBOTS_HEIGHT 350.0f
 
 #define UNUSED(x) (void)(x)
+
 
 void showImage(const std::string& name, cv::Mat& image);
 
