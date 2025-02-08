@@ -7,6 +7,20 @@
 #define MIN_PLANK_AREA PLANK_L * PLANK_l
 #define MAX_PLANK_AREA PLANK_L * PLANK_l
 #define ROBOTS_RATIO ROBOTS_HEIGHT / ROBOTS_ARUCO_Z
+// #define INIT_PLANKS_RATIO 1.2f
+
+// const std::vector initPlanksPos({
+//     std::vector({cv::Point2f(2925.0f, 400.0f), cv::Point2f(0.0f, 1.0f)}),
+//     std::vector({cv::Point2f(2925.0f, 1320.0f), cv::Point2f(0.0f, 1.0f)}),
+//     std::vector({cv::Point2f(2225.0f, 250.0f), cv::Point2f(1.0f, 0.0f)}),
+//     std::vector({cv::Point2f(2175.0f, 1725.0f), cv::Point2f(1.0f, 0.0f)}),
+//     std::vector({cv::Point2f(1900.0f, 950.0f), cv::Point2f(1.0f, 0.0f)}),
+//     std::vector({cv::Point2f(75.0f, 400.0f), cv::Point2f(0.0f, 1.0f)}),
+//     std::vector({cv::Point2f(75.0f, 1320.0f), cv::Point2f(0.0f, 1.0f)}),
+//     std::vector({cv::Point2f(775.0f, 250.0f), cv::Point2f(1.0f, 0.0f)}),
+//     std::vector({cv::Point2f(825.0f, 1725.0f), cv::Point2f(1.0f, 0.0f)}),
+//     std::vector({cv::Point2f(1100.0f, 950.0f), cv::Point2f(1.0f, 0.0f)})
+// });
 
 
 void getFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered) {
@@ -22,11 +36,8 @@ void getFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
     for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
         try {
             arucos.getDistortion((int) i, distortion);
-            const cv::Point2f& robotBottom = arucos[(int) i];
-            const cv::Point2f& robotTop = robotBottom + distortion * ROBOTS_RATIO;
-            cv::circle(filtered, robotBottom, ROBOTS_RADIUS, cv::Scalar(0), -1);
-            cv::line(filtered, robotBottom, robotTop, cv::Scalar(0), 2 * ROBOTS_RADIUS);
-            cv::circle(filtered, robotTop, ROBOTS_RADIUS, cv::Scalar(0), -1);
+            const cv::Point2f& pos = arucos[(int) i];
+            cv::line(filtered, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), 2 * ROBOTS_RADIUS);
         } catch (const std::out_of_range& e) {
             /* robot not found */
         }
@@ -82,6 +93,15 @@ bool findPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
     }
     return false;
 }
+
+// void Planks::RemoveInitPlanks(cv::Mat& image) {
+//     for (const std::vector<cv::Point2f>& plank : initPlanksPos) {
+//         const cv::Point2f& center = plank[0];
+//         const cv::Point2f& halfPlank = plank[1] / cv::norm(plank[1]) * PLANK_L * INIT_PLANKS_RATIO / 2.0f;
+//         cv::line(image, center, center + halfPlank, cv::Scalar(0), (int) (PLANK_l * INIT_PLANKS_RATIO));
+//         cv::line(image, center, center - halfPlank, cv::Scalar(0), (int) (PLANK_l * INIT_PLANKS_RATIO));
+//     }
+// }
 
 std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours) {
     cv::Mat filtered, canny_output;

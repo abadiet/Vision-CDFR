@@ -42,9 +42,7 @@ int main(int argc, char** argv) {
         planks = Planks::Get(base, frame, arucos);
 
         Planks::Draw(frame, planks);
-        cv::circle(frame, arucos[6], 5, cv::Scalar(0, 255, 0), -1);
-        cv::circle(frame, arucos[6], 150, cv::Scalar(0, 255, 0), 1);
-        showImage("Vision", frame);
+        showImage("Planks", frame);
     }
 
     auto end = std::chrono::high_resolution_clock::now();

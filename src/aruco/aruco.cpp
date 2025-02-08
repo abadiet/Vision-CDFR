@@ -6,16 +6,11 @@ const cv::aruco::Dictionary Arucos::dictionary = cv::aruco::getPredefinedDiction
 const cv::aruco::DetectorParameters Arucos::detectorParams = cv::aruco::DetectorParameters();
 const cv::aruco::ArucoDetector Arucos::detector = cv::aruco::ArucoDetector(dictionary, detectorParams);
 const std::vector<cv::Point2f> Arucos::dst = {
-    cv::Point2f(2400, 1400),
-    cv::Point2f(600, 1400),
-    cv::Point2f(600, 600),
-    cv::Point2f(2400, 600)
-};/* TODO to change on a real table
     cv::Point2f(2400, 600),
     cv::Point2f(600, 600),
-    cv::Point2f(2400, 1400),
-    cv::Point2f(600, 1400)
-}*/
+    cv::Point2f(600, 1400),
+    cv::Point2f(2400, 1400)
+};
 
 Arucos::Arucos(cv::Mat& image) :
     image(image)

@@ -16,6 +16,7 @@ class Planks {
             cv::Point2f direction;
         };
 
+        // static void RemoveInitPlanks(cv::Mat& image);
         static std::vector<plank> Get(cv::Mat& base, cv::Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours = nullptr);
         static void Draw(cv::Mat& image, std::vector<plank>& planks, std::vector<std::vector<cv::Point>>* contours = nullptr);
 };
