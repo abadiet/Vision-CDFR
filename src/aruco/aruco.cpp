@@ -2,7 +2,7 @@
 
 #define CAMERA_POS cv::Point2f(1530.0f, 2000.0f) /* TODO to change on a real table */
 #define CAMERA_Z 1370.0f
-#define ROBOTS_ARUCO_Z 370.0f
+#define ROBOTS_ARUCO_Z 450.0f
 #define ROBOTS_RATIO (1 - ROBOTS_ARUCO_Z / CAMERA_Z)
 
 
