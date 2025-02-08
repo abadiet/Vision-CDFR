@@ -11,14 +11,32 @@
 #define N_CONTROL_POINTS_THRESHOLD 2
 #define MIN_PLANK_AREA PLANK_L * PLANK_l
 #define MAX_PLANK_AREA PLANK_L * PLANK_l
-#define MAX_DST_ROBOTS_PLANK 100
+
+#define MIN_DST_ROBOTS_PLANK 200
+#define ROBOTS_RADIUS 150
+#define ROBOTS_HEIGHT 450
 
 
 void getFilteredImage(cv::Mat& base, cv::Mat& image, cv::Mat& filtered) {
+    unsigned int i;
+
     /* difference between the images */
     cv::absdiff(base, image, filtered);
     cv::cvtColor(filtered, filtered, cv::COLOR_BGR2GRAY);
     cv::threshold(filtered, filtered, 50, 255, cv::THRESH_BINARY);
+    
+    /* remove the robots */
+    for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
+        try {
+            const cv::Point2f robot = arucos[(int) i];
+            const cv::Point2f line = robot - CAMERA_POS;
+            cv::circle(filtered, robot, ROBOTS_RADIUS, cv::Scalar(0), -1);
+
+
+        } catch (const std::out_of_range& e) {
+            /* robot not found */
+        }
+    }
 
     /* remove the alone pixels */
     cv::morphologyEx(filtered, filtered, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5)));
@@ -77,7 +95,6 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
     Planks::plank plank;
     std::vector<std::vector<cv::Point>> conts;
     std::vector<cv::Point2f> robotsPos;
-    // bool isRobot;
     unsigned int i, j;
 
     getFilteredImage(base, image, filtered);
@@ -125,23 +142,35 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
 
     for (i = 0; i < planks.size(); i++) {
         Planks::plank& plank = planks[i];
-        for (j = i + 1; j < planks.size(); j++) {
-            const Planks::plank& p = planks[j];
-            if (cv::norm(p.center - plank.center) < PLANK_l) {
-                if  (cv::norm(p.direction - plank.direction) < 0.1) {
-                    plank.center = (plank.center + p.center) / 2;
-                    plank.direction = (plank.direction + p.direction) / 2;
-                    planks.erase(planks.begin() + j);
-                    j--;
-                } else {
-                    if (cv::norm(p.direction + plank.direction) < 0.1) {
+
+        j = 0;
+        while (j < robotsPos.size() && cv::norm(robotsPos[j] - plank.center) >= MIN_DST_ROBOTS_PLANK) { /* TODO test */
+            j++;
+        }
+        if (j < robotsPos.size()) {
+            planks.erase(planks.begin() + i);
+            i--;
+        } else {
+
+            for (j = i + 1; j < planks.size(); j++) {
+                const Planks::plank& p = planks[j];
+                if (cv::norm(p.center - plank.center) < PLANK_l) {
+                    if  (cv::norm(p.direction - plank.direction) < 0.1) {
                         plank.center = (plank.center + p.center) / 2;
-                        plank.direction = (plank.direction - p.direction) / 2;
+                        plank.direction = (plank.direction + p.direction) / 2;
                         planks.erase(planks.begin() + j);
                         j--;
+                    } else {
+                        if (cv::norm(p.direction + plank.direction) < 0.1) {
+                            plank.center = (plank.center + p.center) / 2;
+                            plank.direction = (plank.direction - p.direction) / 2;
+                            planks.erase(planks.begin() + j);
+                            j--;
+                        }
                     }
                 }
             }
+
         }
     }
 
