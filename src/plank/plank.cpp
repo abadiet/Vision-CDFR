@@ -149,9 +149,20 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
 }
 
 void Planks::Draw(cv::Mat& image, std::vector<Planks::plank>& planks, std::vector<std::vector<cv::Point>>* contours) {
+    const float halfPlankL = PLANK_L / 2.0f / PLANK_EPSI;
+    const float halfPlankl = PLANK_l / 2.0f / PLANK_EPSI;
     for (Planks::plank& plank : planks) {
+        const cv::Point2f perp = cv::Point2f(-plank.direction.y, plank.direction.x);
+        const cv::Point2f p1 = plank.center + perp * halfPlankl + plank.direction * halfPlankL;
+        const cv::Point2f p2 = plank.center - perp * halfPlankl + plank.direction * halfPlankL;
+        const cv::Point2f p3 = plank.center - perp * halfPlankl - plank.direction * halfPlankL;
+        const cv::Point2f p4 = plank.center + perp * halfPlankl - plank.direction * halfPlankL;
         cv::line(image, plank.center, plank.center + plank.direction * 100, cv::Scalar(0, 0, 255), 2);
         cv::circle(image, plank.center, 5, cv::Scalar(0, 0, 255), -1);
+        cv::line(image, p1, p2, cv::Scalar(255, 0, 255), 2);
+        cv::line(image, p2, p3, cv::Scalar(255, 0, 255), 2);
+        cv::line(image, p3, p4, cv::Scalar(255, 0, 255), 2);
+        cv::line(image, p4, p1, cv::Scalar(255, 0, 255), 2);
         std::cout << "Plank at " << plank.center << " with direction " << plank.direction << std::endl;
     }
     if (contours != nullptr) {  
