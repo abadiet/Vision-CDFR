@@ -20,6 +20,6 @@
 #define UNUSED(x) (void)(x)
 
 
-void showImage(const std::string& name, cv::Mat& image);
+void ShowImage(const std::string& name, cv::Mat& image);
 
 #endif /* UTILS_HPP */

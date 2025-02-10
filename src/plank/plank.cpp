@@ -23,7 +23,10 @@
 // });
 
 
-void getFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered) {
+cv::Mat Planks::filtered, Planks::canny_output;
+
+
+void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered) {
     cv::Point2f distortion;
     unsigned int i;
 
@@ -50,16 +53,17 @@ void getFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
     cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41)));
 }
 
-bool findPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold) {
+bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold) {
     unsigned int missed, i;
     short int rectSens, diagSens;
     const float step = PLANK_DIAGONAL / Nchecks;
+    const cv::Point2f p12 = p1 - p2;
 
     for (rectSens = -1; rectSens <= 1; rectSens += 2) {
         missed = 0;
 
         for (diagSens = -1; diagSens <= 1; diagSens += 2) {
-            const cv::Point2f line = diagSens * (p1 - p2);
+            const cv::Point2f line = diagSens * p12;
             const cv::Point2f lineNorm = line / cv::norm(line);
             const cv::Point2f start = (diagSens < 0) ? p1 : p1 - lineNorm * PLANK_L;
             const cv::Point2f direction = cv::Point2f(
@@ -85,8 +89,8 @@ bool findPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
         }
 
         if (missed < threshold) {
-            const cv::Point2f line = (p2 - p1) / cv::norm(p2 - p1);
-            plank.center = p1 + line * PLANK_L / 2.0f + cv::Point2f(rectSens * line.y, -1 * rectSens * line.x) * PLANK_l / 2.0f;
+            const cv::Point2f line = p12 / cv::norm(p12);
+            plank.center = p1 - line * PLANK_L / 2.0f + cv::Point2f(-1 * rectSens * line.y, rectSens * line.x) * PLANK_l / 2.0f;
             plank.direction = line;
             return true;
         }
@@ -104,21 +108,20 @@ bool findPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
 // }
 
 std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours) {
-    cv::Mat filtered, canny_output;
     std::vector<Planks::plank> planks;
     Planks::plank plank;
     std::vector<std::vector<cv::Point>> conts;
     std::vector<cv::Point2f> robotsPos;
     unsigned int i, j;
 
-    getFilteredImage(base, image, arucos, filtered);
+    GetFilteredImage(base, image, arucos, filtered);
 
     cv::Canny(filtered, canny_output, 250, 250);
     cv::findContours(canny_output, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
         try {
-            const cv::Point2f arucoCenter = arucos[(int) i];
+            const cv::Point2f& arucoCenter = arucos[(int) i];
             robotsPos.push_back(arucoCenter);
         } catch (const std::out_of_range& e) {
             /* robot not found */
@@ -129,20 +132,19 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
         /* approximate the contour to a polynom */
         cv::approxPolyDP(contour, contour, 30, true);
 
-        const double area = cv::contourArea(contour);
-        if (area >= MIN_PLANK_AREA) {
+        if (cv::contourArea(contour) >= MIN_PLANK_AREA) {
             for (i = 0; i < contour.size(); i++) {
-                const cv::Point2f p1 = contour[i];
-                const cv::Point2f p2 = contour[(i + 1) % contour.size()];
+                const cv::Point2f& p1 = contour[i];
+                const cv::Point2f& p2 = contour[(i + 1) % contour.size()];
 
-                if (findPossiblePlank(plank, p1, p2, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                if (FindPossiblePlank(plank, p1, p2, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
                     planks.push_back(plank);
 
                     if (contours != nullptr) {
                         contours->push_back(contour);
                     }
                 } else {
-                    if (findPossiblePlank(plank, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                    if (FindPossiblePlank(plank, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
                         planks.push_back(plank);
 
                         if (contours != nullptr) {

@@ -5,7 +5,7 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
-#define NTESTS 1
+#define NTESTS 50
 
 
 int main(int argc, char** argv) {
@@ -40,9 +40,6 @@ int main(int argc, char** argv) {
         arucos.warp(frame);
 
         planks = Planks::Get(base, frame, arucos);
-
-        Planks::Draw(frame, planks);
-        showImage("Planks", frame);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
