@@ -3,7 +3,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#define CAMERA_POS cv::Point2f(1470.0f, 0.0f)
+#define CAMERA_POS cv::Point2f(1550.0f, -50.0f)
 #define CAMERA_Z 1370.0f
 #define ROBOTS_ARUCO_Z 450.0f
 

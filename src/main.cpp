@@ -5,16 +5,21 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
-#define NTESTS 50
+#define NFRAME 1000
 
 
 int main(int argc, char** argv) {
-    cv::Mat base, image, frame;
+    cv::Mat base, frame;
     std::vector<Planks::plank> planks;
+    cv::VideoCapture capture;
+    cv::VideoWriter outputVideo;
+    Arucos baseArucos, arucos;
+    std::chrono::duration<double> elapsed;
+    unsigned int iframe;
     // std::vector<std::vector<cv::Point>> contours;
 
-    if ( argc != 3 ) {
-        std::cout << "usage: Vision <base_image> <image>" << std::endl;
+    if ( argc != 4 ) {
+        std::cout << "usage: Vision <base_image> <input_video> <output_video>" << std::endl;
         return 1;
     }
     base = cv::imread(argv[1]);
@@ -22,29 +27,57 @@ int main(int argc, char** argv) {
         std::cerr << "Could not open or find the base image." << std::endl;
         return 1;
     }
-    image = cv::imread(argv[2]);
-    if (image.empty()) {
-        std::cerr << "Could not open or find the image." << std::endl;
+    capture = cv::VideoCapture(argv[2]);
+    if (!capture.isOpened()) {
+        std::cerr << "Could not open or find the video." << std::endl;
+        return 1;
+    }
+    outputVideo.open(
+        argv[3],
+        cv::VideoWriter::fourcc('m', 'p', '4', 'v'),
+        60,
+        cv::Size(3000, 2000),
+        true
+    );
+    if (!outputVideo.isOpened()) {
+        std::cerr << "Could not open the output video for write." << std::endl;
         return 1;
     }
 
-    Arucos baseArucos(base);
-    baseArucos.warp(base);
+    baseArucos.get(base);
+    baseArucos.warp(base, base);
 
-    auto start = std::chrono::high_resolution_clock::now();
+    capture >> frame;
+    arucos.get(frame);
+    arucos.warp(frame, frame, true, false);
 
-    for (int i = 0; i < NTESTS; i++) {
-        frame = image.clone();
+    iframe = 0;
+    while (NFRAME < 0 || iframe < NFRAME) {
+        capture >> frame;
+        if (frame.empty()) break;
 
-        Arucos arucos(frame);
-        arucos.warp(frame);
+        const auto start = std::chrono::high_resolution_clock::now();
+
+        arucos.get(frame);
+        arucos.warp(frame, frame, true, true);
 
         planks = Planks::Get(base, frame, arucos);
+
+        const auto end = std::chrono::high_resolution_clock::now();
+        elapsed += end - start;
+
+        arucos.draw(frame);
+        Planks::Draw(frame, planks);
+
+        outputVideo.write(frame);
+
+        iframe++;
     }
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Execution time: " << elapsed.count() / NTESTS << " seconds" << std::endl;
+    std::cout << "Avg. processing time " << elapsed.count() / (double) iframe << "s" << std::endl;
+
+    capture.release();
+    outputVideo.release();
 
     return 0;
 }

@@ -208,9 +208,14 @@ void Planks::Draw(cv::Mat& image, std::vector<Planks::plank>& planks, std::vecto
         cv::line(image, p2, p3, cv::Scalar(255, 0, 255), 2);
         cv::line(image, p3, p4, cv::Scalar(255, 0, 255), 2);
         cv::line(image, p4, p1, cv::Scalar(255, 0, 255), 2);
-        std::cout << "Plank at " << plank.center << " with direction " << plank.direction << std::endl;
     }
     if (contours != nullptr) {  
         cv::drawContours(image, *contours, -1, cv::Scalar(0, 255, 0), 2);
+    }
+}
+
+void Planks::Print(std::ostream& os, std::vector<Planks::plank>& planks) {
+    for (const Planks::plank& plank : planks) {
+        os << "Plank: " << plank.center << " " << plank.direction << std::endl;
     }
 }

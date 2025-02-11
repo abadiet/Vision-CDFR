@@ -19,17 +19,19 @@ class Arucos {
             ROBOTS_MAX = 10
         };
 
-        Arucos(cv::Mat& image);
+        Arucos();
+
+        void get(cv::Mat& image);
 
         cv::Point2f& operator[](int id);
         cv::Point2f& getPosition(int id, bool rawPosition = false);
 
-        void draw(cv::Mat& input);
-
-        void warp(bool updateArucos = true);
-        void warp(cv::Mat& output, bool updateArucos = true);
+        void warp(cv::Mat& input, cv::Mat& output, bool updateArucos = true, bool usePreviousMatrix = false, bool forceUpdateMatrix = false);
 
         void getDistortion(int id, cv::Point2f& distortion);
+
+        void draw(cv::Mat& input);
+        void print(std::ostream& os);
 
     private:
         static const cv::aruco::Dictionary dictionary;
@@ -39,7 +41,6 @@ class Arucos {
 
         std::map<int, cv::Point2f> arucos;
         std::map<int, cv::Point2f> realPos;
-        cv::Mat& image;
         bool cornersOutdated;
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners, rejectedCandidates;
