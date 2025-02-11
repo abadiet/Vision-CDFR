@@ -6,6 +6,8 @@
 #include <map>
 #include "../utils/utils.hpp"
 
+#define ARUCO_POS_MEMORY 5  /* to adjust relatively to the speed of the moving objects */
+
 
 class Arucos {
 
@@ -19,14 +21,21 @@ class Arucos {
             ROBOTS_MAX = 10
         };
 
+        struct element {
+            cv::Point2f raw;
+            cv::Point2f aruco;
+            cv::Point2f real[ARUCO_POS_MEMORY];
+            unsigned int notFound;
+        };
+
         Arucos();
 
-        void get(cv::Mat& image);
+        void nextFrame(cv::Mat& image);
 
         cv::Point2f& operator[](int id);
-        cv::Point2f& getPosition(int id, bool rawPosition = false);
+        cv::Point2f& getPosition(int id, bool projected = true, bool aruco = false);
 
-        void warp(cv::Mat& input, cv::Mat& output, bool updateArucos = true, bool usePreviousMatrix = false, bool forceUpdateMatrix = false);
+        void warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix = false, bool forceUpdateMatrix = false);
 
         void getDistortion(int id, cv::Point2f& distortion);
 
@@ -39,8 +48,7 @@ class Arucos {
         static const cv::aruco::ArucoDetector detector;
         static const std::vector<cv::Point2f> dst;
 
-        std::map<int, cv::Point2f> arucos;
-        std::map<int, cv::Point2f> realPos;
+        std::map<int, struct element> elements;
         bool cornersOutdated;
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners, rejectedCandidates;

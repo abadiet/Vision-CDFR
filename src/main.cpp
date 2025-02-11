@@ -5,7 +5,8 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
-#define NFRAME 1000
+#define NFRAME 200
+#define VIDEO_OFFSET 150
 
 
 int main(int argc, char** argv) {
@@ -44,22 +45,25 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    baseArucos.get(base);
+    baseArucos.nextFrame(base);
     baseArucos.warp(base, base);
 
-    capture >> frame;
-    arucos.get(frame);
-    arucos.warp(frame, frame, true, false);
+    for (unsigned int i = 0; i < VIDEO_OFFSET; i++) {
+        capture >> frame;
+    }
 
-    iframe = 0;
-    while (NFRAME < 0 || iframe < NFRAME) {
+    arucos.nextFrame(frame);
+    arucos.warp(frame, frame, false);
+
+    iframe = VIDEO_OFFSET;
+    while (NFRAME < 0 || iframe < NFRAME + VIDEO_OFFSET) {
         capture >> frame;
         if (frame.empty()) break;
 
         const auto start = std::chrono::high_resolution_clock::now();
 
-        arucos.get(frame);
-        arucos.warp(frame, frame, true, true);
+        arucos.nextFrame(frame);
+        arucos.warp(frame, frame, true);
 
         planks = Planks::Get(base, frame, arucos);
 
@@ -69,12 +73,15 @@ int main(int argc, char** argv) {
         arucos.draw(frame);
         Planks::Draw(frame, planks);
 
+        // arucos.print(std::cout);
+
         outputVideo.write(frame);
 
+        // std::cout << iframe / 60.0f << "s (" << iframe << ")" << std::endl;
         iframe++;
     }
 
-    std::cout << "Avg. processing time " << elapsed.count() / (double) iframe << "s" << std::endl;
+    std::cout << "Avg. processing time " << elapsed.count() / (double) (iframe - VIDEO_OFFSET) << "s" << std::endl;
 
     capture.release();
     outputVideo.release();

@@ -41,7 +41,7 @@ void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
             arucos.getDistortion((int) i, distortion);
             const cv::Point2f& pos = arucos[(int) i];
             cv::line(filtered, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), 2 * ROBOTS_RADIUS);
-        } catch (const std::out_of_range& e) {
+        } catch (const std::exception& e) {
             /* robot not found */
         }
     }
@@ -123,7 +123,7 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
         try {
             const cv::Point2f& arucoCenter = arucos[(int) i];
             robotsPos.push_back(arucoCenter);
-        } catch (const std::out_of_range& e) {
+        } catch (const std::exception& e) {
             /* robot not found */
         }
     }

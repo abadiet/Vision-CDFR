@@ -7,6 +7,8 @@
 #define CAMERA_Z 1370.0f
 #define ROBOTS_ARUCO_Z 450.0f
 
+#define ARUCO_NOTFOUND_THRESHOLD 30
+
 #define PLANK_EPSI 0.95f
 #define PLANK_L 400.0f * PLANK_EPSI
 #define PLANK_l 100.0f * PLANK_EPSI

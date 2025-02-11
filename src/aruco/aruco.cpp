@@ -13,58 +13,108 @@ const std::vector<cv::Point2f> Arucos::dst = {
 };
 
 
-Arucos::Arucos() : cornersOutdated(false) {}
+Arucos::Arucos() {
+    cornersOutdated = true;
+}
 
-void Arucos::get(cv::Mat& image) {
-    unsigned int i;
+void Arucos::nextFrame(cv::Mat& image) {
+    std::vector<int> toErase;
+    cv::Point2f last;
+    unsigned int i, j;
 
     detector.detectMarkers(image, corners, ids, rejectedCandidates);
 
-    arucos.clear();
-    realPos.clear();
     for (i = 0; i < ids.size(); i++) {
+        const int id = ids[i];
+
         cv::Point2f center(0, 0);
         for (cv::Point2f& corner : corners[i]) {
             center += corner;
         }
         center /= 4.0f;
 
-        arucos[ids[i]] = center;
-
-        if (ids[i] < Arucos::ROBOTS_MIN || ids[i] > Arucos::ROBOTS_MAX) {
-            realPos[ids[i]] = center;
+        if (elements.find(id) == elements.end()) {
+            elements[id].raw = center;
+            elements[id].aruco = cv::Point2f(-1.0f, -1.0f);
+            for (j = 0; j < ARUCO_POS_MEMORY; j++) {
+                elements[id].real[j] = cv::Point2f(-1.0f, -1.0f);
+            }
+            elements[id].notFound = 0;
+        } else {
+            elements[id].raw = center;
+            elements[id].aruco = cv::Point2f(-1.0f, -1.0f);
+            for (j = ARUCO_POS_MEMORY - 1; j > 0; j--) {
+                elements[id].real[j] = elements[id].real[j - 1];
+            }
+            elements[id].real[0] = cv::Point2f(-1.0f, -1.0f);
+            elements[id].notFound = 0;
         }
+    }
+
+    for (std::pair<const int, Arucos::element>& elem : elements) {
+        if (std::find(ids.begin(), ids.end(), elem.first) == ids.end()) {
+            elem.second.notFound++;
+            if (elem.second.notFound > ARUCO_NOTFOUND_THRESHOLD) {
+                toErase.push_back(elem.first);
+            } else {
+                elem.second.raw = cv::Point2f(-1.0f, -1.0f);
+                elem.second.aruco = cv::Point2f(-1.0f, -1.0f);
+                i = ARUCO_POS_MEMORY - 1;
+                while (i > 0 && (last = elem.second.real[i], last.x < 0)) {
+                    i--;
+                }
+                if (i < ARUCO_POS_MEMORY - 1) {
+                    i++;
+                }
+                for (j = i; j > 0; j--) {
+                    elem.second.real[j] = elem.second.real[j - 1];
+                }
+                elem.second.real[0] += (elem.second.real[0] - last) / (float) (ARUCO_POS_MEMORY - 1);
+            }
+        }
+    }
+    for (int id : toErase) {
+        elements.erase(id);
     }
 }
 
 cv::Point2f& Arucos::operator[](int id) {
-    return this->getPosition(id, false);
+    return this->getPosition(id, true, false);
 }
 
-cv::Point2f& Arucos::getPosition(int id, bool rawPosition) {
-    if (rawPosition) {
-        if (arucos.find(id) == arucos.end()) {
-            throw std::out_of_range("Arucos::operator[] for id " + std::to_string(id));
+cv::Point2f& Arucos::getPosition(int id, bool projected, bool aruco) {
+    if (elements.find(id) == elements.end()) {
+        throw std::out_of_range("Aruco " + std::to_string(id) + " does not exist");
+    }
+    if (!projected) {
+        if (elements[id].notFound > 0) {
+            throw std::runtime_error("Aruco " + std::to_string(id) + " not found"); 
         }
-        return arucos[id];
+        return elements[id].raw;
     }
-    if (realPos.find(id) == realPos.end()) {
-        throw std::out_of_range("Arucos::operator[] for id " + std::to_string(id));
+    if (aruco) {
+        if (elements[id].aruco.x < 0) {
+            throw std::runtime_error("Aruco " + std::to_string(id) + " is outdated");
+        }
+        return elements[id].aruco;
     }
-    return realPos[id];
+    if (elements[id].real[0].x < 0) {
+        throw std::runtime_error("Aruco " + std::to_string(id) + " is outdated");
+    }
+    return elements[id].real[0];
 }
 
-void Arucos::warp(cv::Mat& input, cv::Mat& output, bool updateArucos, bool usePreviousMatrix, bool forceUpdateMatrix) {
+void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool forceUpdateMatrix) {
     std::vector<cv::Point2f> src(4), centers;
     unsigned int i;
 
     if (!usePreviousMatrix) {
         try {
-            src[0] = (*this)[Arucos::CENTER_TOP_LEFT];
-            src[1] = (*this)[Arucos::CENTER_TOP_RIGHT];
-            src[2] = (*this)[Arucos::CENTER_BOTTOM_LEFT];
-            src[3] = (*this)[Arucos::CENTER_BOTTOM_RIGHT];
-        } catch (const std::out_of_range& e) {
+            src[0] = this->getPosition(Arucos::CENTER_TOP_LEFT, false);
+            src[1] = this->getPosition(Arucos::CENTER_TOP_RIGHT, false);
+            src[2] = this->getPosition(Arucos::CENTER_BOTTOM_LEFT, false);
+            src[3] = this->getPosition(Arucos::CENTER_BOTTOM_RIGHT, false);
+        } catch (const std::exception& e) {
             if (forceUpdateMatrix || transformMatrix.empty()) {
                 throw std::runtime_error("Not all center markers found!");
             } else {
@@ -78,27 +128,31 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool updateArucos, bool usePr
     }
     cv::warpPerspective(input, output, transformMatrix, cv::Size(3000, 2000));
 
-    if (updateArucos) {
-        for (i = 0; i < ids.size(); i++) {
-            centers.push_back(arucos[ids[i]]);
+    /* update arucos */
+    for (const std::pair<const int, Arucos::element>& elem : elements) {
+        if (elem.second.notFound == 0) {
+            centers.push_back(elem.second.raw);
         }
-        cv::perspectiveTransform(centers, centers, transformMatrix);
-        for (i = 0; i < ids.size(); i++) {
-            const int id = ids[i];
-            arucos[id] = centers[i];
-            if (id < Arucos::ROBOTS_MIN || id > Arucos::ROBOTS_MAX) {
-                realPos[id] = centers[i];
-            } else {
-                realPos[id] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO;
-            }
-        }
-
-        cornersOutdated = true;
     }
+    cv::perspectiveTransform(centers, centers, transformMatrix);
+    i = 0;
+    for (std::pair<const int, Arucos::element>& elem : elements) {
+        if (elem.second.notFound == 0) {
+            elem.second.aruco = centers[i];
+            if (elem.first < Arucos::ROBOTS_MIN || elem.first > Arucos::ROBOTS_MAX) {
+                elem.second.real[0] = centers[i];
+            } else {
+                elem.second.real[0] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO;
+            }
+            i++;
+        }
+    }
+
+    cornersOutdated = true;
 }
 
 void Arucos::getDistortion(int id, cv::Point2f& distortion) {
-    distortion = this->getPosition(id, true) - this->getPosition(id, false);
+    distortion = this->getPosition(id, true, true) - this->getPosition(id, true, false);
 }
 
 void Arucos::draw(cv::Mat& input) {
@@ -116,14 +170,14 @@ void Arucos::draw(cv::Mat& input) {
         try {
             cv::circle(input, (*this)[i], 5, cv::Scalar(0, 255, 0), -1);
             cv::circle(input, (*this)[i], 150, cv::Scalar(0, 255, 0), 2);
-        } catch (const std::out_of_range& e) {
+        } catch (const std::exception& e) {
             /* robot not found */
         }
     }
 }
 
 void Arucos::print(std::ostream& os) {
-    for (const std::pair<const int, cv::Point2f>& aruco : arucos) {
-        os << "Aruco: " << aruco.first << " pos(" << aruco.second << ") real(" << realPos[aruco.first] << ")" << std::endl;
+    for (const std::pair<const int, Arucos::element>& elem : elements) {
+        os << "Aruco " << elem.first << ": raw(" << elem.second.raw << ") aruco(" << elem.second.aruco << ") real(" << elem.second.real[0] << ") notFound(" << elem.second.notFound << ")" << std::endl;
     }
 }
