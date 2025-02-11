@@ -13,19 +13,21 @@ const std::vector<cv::Point2f> Arucos::dst = {
 };
 
 
-Arucos::Arucos() : cornersOutdated(true) {}
+Arucos::Arucos() : cornersOutdated(false) {}
 
 void Arucos::get(cv::Mat& image) {
     unsigned int i;
 
     detector.detectMarkers(image, corners, ids, rejectedCandidates);
 
+    arucos.clear();
+    realPos.clear();
     for (i = 0; i < ids.size(); i++) {
         cv::Point2f center(0, 0);
         for (cv::Point2f& corner : corners[i]) {
             center += corner;
         }
-        center /= 4;
+        center /= 4.0f;
 
         arucos[ids[i]] = center;
 
@@ -33,8 +35,6 @@ void Arucos::get(cv::Mat& image) {
             realPos[ids[i]] = center;
         }
     }
-
-    cornersOutdated = true;
 }
 
 cv::Point2f& Arucos::operator[](int id) {
@@ -79,19 +79,18 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool updateArucos, bool usePr
     cv::warpPerspective(input, output, transformMatrix, cv::Size(3000, 2000));
 
     if (updateArucos) {
-        for (const std::pair<const int, cv::Point2f>& aruco : arucos) {
-            centers.push_back(aruco.second);
+        for (i = 0; i < ids.size(); i++) {
+            centers.push_back(arucos[ids[i]]);
         }
         cv::perspectiveTransform(centers, centers, transformMatrix);
-        i = 0;
-        for (std::pair<const int, cv::Point2f>& aruco : arucos) {
-            aruco.second = centers[i];
-            if (aruco.first < Arucos::ROBOTS_MIN || aruco.first > Arucos::ROBOTS_MAX) {
-                realPos[aruco.first] = centers[i];
+        for (i = 0; i < ids.size(); i++) {
+            const int id = ids[i];
+            arucos[id] = centers[i];
+            if (id < Arucos::ROBOTS_MIN || id > Arucos::ROBOTS_MAX) {
+                realPos[id] = centers[i];
             } else {
-                realPos[aruco.first] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO;
+                realPos[id] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO;
             }
-            i++;
         }
 
         cornersOutdated = true;
