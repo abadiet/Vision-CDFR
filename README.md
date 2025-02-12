@@ -9,6 +9,7 @@ Vision Camera Code for the French Robotics Cup 🏆🇫🇷
 
 ## Benchmark
 
-| CPU        | GPU        | FPS  |
-|------------|------------|------|
-| Apple M3   |            | 20   |
+| Architecture            | FPS    |
+|-------------------------|--------|
+| Apple M3 (CPU Only)     | 20     |
+| Jetson Orin Nano Super  | *soon* |
