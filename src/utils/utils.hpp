@@ -21,7 +21,11 @@
 
 #define UNUSED(x) (void)(x)
 
-
+/**
+ * @brief Display an image in a window
+ * @param name: the name of the window
+ * @param image: the image to display
+ */
 void ShowImage(const std::string& name, cv::Mat& image);
 
 #endif /* UTILS_HPP */

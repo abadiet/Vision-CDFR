@@ -23,9 +23,16 @@
 // });
 
 
+/* buffers */
 cv::Mat Planks::filtered, Planks::canny_output;
 
-
+/**
+ * @brief Get the filtered image
+ * @param base: the base image
+ * @param image: the image to process
+ * @param arucos: the arucos on the image
+ * @param filtered: the resulting filtered image
+ */
 void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered) {
     cv::Point2f distortion;
     unsigned int i;
@@ -53,15 +60,26 @@ void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
     cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41)));
 }
 
+/**
+ * @brief Check if p1 can be the corner of a plank with p1p2 as its direction
+ * @param plank: the resulting plank
+ * @param p1: the first point
+ * @param p2: the second point
+ * @param contour: the contour to check
+ * @param Nchecks: the number of checks per diagonal
+ * @param threshold: the threshold of missed checks
+ */
 bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold) {
     unsigned int missed, i;
     short int rectSens, diagSens;
     const float step = PLANK_DIAGONAL / Nchecks;
     const cv::Point2f p12 = p1 - p2;
 
+    /* test both sides of the line p1-p2 */
     for (rectSens = -1; rectSens <= 1; rectSens += 2) {
         missed = 0;
 
+        /* test both diagonals of a side */
         for (diagSens = -1; diagSens <= 1; diagSens += 2) {
             const cv::Point2f line = diagSens * p12;
             const cv::Point2f lineNorm = line / cv::norm(line);
@@ -72,11 +90,14 @@ bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
             );
 
             i = 0;
+            /* for each test points */
             while (i < Nchecks && missed < threshold) {
                 const cv::Point2f p = start + direction * (float) i * step;
                 if (cv::pointPolygonTest(contour, p, false) < 0) {
                     missed++;
                     if (missed >= threshold) {
+                        /* too many test points are out, this is not a
+                        plank */
                         break;
                     }
                 }
@@ -84,11 +105,13 @@ bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
             }
 
             if (missed >= threshold) {
+                /* too many test points are out, this is not a plank */
                 break;
             }
         }
 
         if (missed < threshold) {
+            /* a plank is found */
             const cv::Point2f line = p12 / cv::norm(p12);
             plank.center = p1 - line * PLANK_L / 2.0f + cv::Point2f(-1 * rectSens * line.y, rectSens * line.x) * PLANK_l / 2.0f;
             plank.direction = line;
@@ -114,37 +137,39 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
     std::vector<cv::Point2f> robotsPos;
     unsigned int i, j;
 
+    /* get the filtered image */
     GetFilteredImage(base, image, arucos, filtered);
 
+    /* get the contours */
     cv::Canny(filtered, canny_output, 250, 250);
     cv::findContours(canny_output, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-    for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
-        try {
-            const cv::Point2f& arucoCenter = arucos[(int) i];
-            robotsPos.push_back(arucoCenter);
-        } catch (const std::exception& e) {
-            /* robot not found */
-        }
-    }
-
+    /* for each contour */
     for (std::vector<cv::Point>& contour : conts) {
+
         /* approximate the contour to a polynom */
         cv::approxPolyDP(contour, contour, 30, true);
 
+        /* if the area is big enough */
         if (cv::contourArea(contour) >= MIN_PLANK_AREA) {
+
+            /* for each segment of the contour */
             for (i = 0; i < contour.size(); i++) {
                 const cv::Point2f& p1 = contour[i];
                 const cv::Point2f& p2 = contour[(i + 1) % contour.size()];
 
+                /* check if p1 can be the corner of a plank with p1p2 as its direction */
                 if (FindPossiblePlank(plank, p1, p2, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                    /* found one */
                     planks.push_back(plank);
 
                     if (contours != nullptr) {
                         contours->push_back(contour);
                     }
                 } else {
+                    /* check if p2 can be the corner of a plank with p2p1 as its direction */
                     if (FindPossiblePlank(plank, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                        /* found one */
                         planks.push_back(plank);
 
                         if (contours != nullptr) {
@@ -156,28 +181,48 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
         }
     }
 
+    /* get the robots positions */
+    for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
+        try {
+            const cv::Point2f& arucoCenter = arucos[(int) i];
+            robotsPos.push_back(arucoCenter);
+        } catch (const std::exception& e) {
+            /* robot not found */
+        }
+    }
+
+    /* remove the robots detected as planks and average the close planks */
     for (i = 0; i < planks.size(); i++) {
         Planks::plank& plank = planks[i];
 
+        /* check if a plank is close to a robot */
         j = 0;
-        while (j < robotsPos.size() && cv::norm(robotsPos[j] - plank.center) >= MIN_DST_ROBOTS_PLANK) { /* TODO test */
+        while (j < robotsPos.size() && cv::norm(robotsPos[j] - plank.center) >= MIN_DST_ROBOTS_PLANK) { /* TODO test irl */
             j++;
         }
         if (j < robotsPos.size()) {
+            /* if so, remove it */
             planks.erase(planks.begin() + i);
             i--;
         } else {
 
+            /* average the close planks */
             for (j = i + 1; j < planks.size(); j++) {
                 const Planks::plank& p = planks[j];
+
+                /* if p is close to planks[j] */
                 if (cv::norm(p.center - plank.center) < PLANK_l) {
                     if  (cv::norm(p.direction - plank.direction) < 0.1) {
+                        /* planks[j] is now the average of both and
+                        remove p */
                         plank.center = (plank.center + p.center) / 2;
                         plank.direction = (plank.direction + p.direction) / 2;
                         planks.erase(planks.begin() + j);
                         j--;
                     } else {
                         if (cv::norm(p.direction + plank.direction) < 0.1) {
+                            /* planks[j] is now the average of both and
+                            remove p */
                             plank.center = (plank.center + p.center) / 2;
                             plank.direction = (plank.direction - p.direction) / 2;
                             planks.erase(planks.begin() + j);

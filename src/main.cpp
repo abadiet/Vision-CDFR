@@ -45,34 +45,44 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    baseArucos.nextFrame(base);
-    baseArucos.warp(base, base);
-
+    /* offset the video */
     for (unsigned int i = 0; i < VIDEO_OFFSET; i++) {
         capture >> frame;
     }
 
+    /* warp the base image */
+    baseArucos.nextFrame(base);
+    baseArucos.warp(base, base);
+
+    /* warp the first frame to get the tranformation matrix */
+    /* By setting up the transformation matrix only once, we assume
+    that the camera is fixed. Otherwise, we need to update the matrix
+    for each frame which might be computationally expensive. */
     arucos.nextFrame(frame);
     arucos.warp(frame, frame, false);
 
     iframe = VIDEO_OFFSET;
     while (NFRAME < 0 || iframe < NFRAME + VIDEO_OFFSET) {
+
+        /* retrieve the frame */
         capture >> frame;
         if (frame.empty()) break;
 
         const auto start = std::chrono::high_resolution_clock::now();
 
+        /* get the arucos position as well as their real position in space
+        and warp the frame with the former tranformation matrix */
         arucos.nextFrame(frame);
         arucos.warp(frame, frame, true);
 
+        /* get the planks */
         planks = Planks::Get(base, frame, arucos);
 
         const auto end = std::chrono::high_resolution_clock::now();
         elapsed += end - start;
 
-        arucos.draw(frame);
-        Planks::Draw(frame, planks);
-
+        // arucos.draw(frame);
+        // Planks::Draw(frame, planks);
         // arucos.print(std::cout);
 
         outputVideo.write(frame);

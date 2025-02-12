@@ -23,11 +23,14 @@ void Arucos::nextFrame(cv::Mat& image) {
     cv::Point2f last;
     unsigned int i, j;
 
+    /* detect arucos */
     detector.detectMarkers(image, corners, ids, rejectedCandidates);
 
+    /* udpate or add the arucos */
     for (i = 0; i < ids.size(); i++) {
         const int id = ids[i];
 
+        /* get the center of the aruco */
         cv::Point2f center(0, 0);
         for (cv::Point2f& corner : corners[i]) {
             center += corner;
@@ -35,6 +38,9 @@ void Arucos::nextFrame(cv::Mat& image) {
         center /= 4.0f;
 
         if (elements.find(id) == elements.end()) {
+            /* First time detecting this aruco. Its raw
+            position is set while the other positions
+            are reseted */
             elements[id].raw = center;
             elements[id].aruco = cv::Point2f(-1.0f, -1.0f);
             for (j = 0; j < ARUCO_POS_MEMORY; j++) {
@@ -42,6 +48,11 @@ void Arucos::nextFrame(cv::Mat& image) {
             }
             elements[id].notFound = 0;
         } else {
+            /* The aruco has already been find. Its raw
+            position is updated while the aruco position as
+            well as the last real position and notFound
+            attribute are resetted. The formers real
+            positions are moved in the array */
             elements[id].raw = center;
             elements[id].aruco = cv::Point2f(-1.0f, -1.0f);
             for (j = ARUCO_POS_MEMORY - 1; j > 0; j--) {
@@ -52,19 +63,31 @@ void Arucos::nextFrame(cv::Mat& image) {
         }
     }
 
+    /* for each element we detected so far in the frames */
     for (std::pair<const int, Arucos::element>& elem : elements) {
+
+        /* check if the aruco is not found */
         if (std::find(ids.begin(), ids.end(), elem.first) == ids.end()) {
             elem.second.notFound++;
             if (elem.second.notFound > ARUCO_NOTFOUND_THRESHOLD) {
+                /* the aruco has not been find for a long time,
+                it is removed */
                 toErase.push_back(elem.first);
             } else {
+                /* the aruco has not been find for a short time,
+                we resetted its raw and aruco positions */
                 elem.second.raw = cv::Point2f(-1.0f, -1.0f);
                 elem.second.aruco = cv::Point2f(-1.0f, -1.0f);
+
+                /* find the last known real position */
                 i = ARUCO_POS_MEMORY - 1;
                 while (i > 0 && (last = elem.second.real[i], last.x < 0)) {
                     i--;
                 }
                 if (last.x < 0) {
+                    /* the formers positions are moved in the array
+                    and the first position is guessed from the previous
+                    ones */
                     if (i < ARUCO_POS_MEMORY - 1) {
                         i++;
                     }
@@ -113,6 +136,7 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool 
     std::vector<cv::Point2f> src(4), centers;
     unsigned int i;
 
+    /* get the transformation matrix */
     if (!usePreviousMatrix) {
         try {
             src[0] = this->getPosition(Arucos::CENTER_TOP_LEFT, false);
@@ -131,9 +155,11 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool 
             transformMatrix = cv::getPerspectiveTransform(src, dst);
         }
     }
+
+    /* warp the image */
     cv::warpPerspective(input, output, transformMatrix, cv::Size(3000, 2000));
 
-    /* update arucos */
+    /* update the elements with their warpped position */
     for (const std::pair<const int, Arucos::element>& elem : elements) {
         if (elem.second.notFound == 0) {
             centers.push_back(elem.second.raw);
@@ -145,8 +171,14 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool 
         if (elem.second.notFound == 0) {
             elem.second.aruco = centers[i];
             if (elem.first < Arucos::ROBOTS_MIN || elem.first > Arucos::ROBOTS_MAX) {
+                /* if it is not a robot, the aruco is assumed
+                to be close to the table and so the real position
+                is the aruco's one */
                 elem.second.real[0] = centers[i];
             } else {
+                /* if it is a robot, the real position is the
+                deduced from the aruco's one (just the Thales
+                theorem) */
                 elem.second.real[0] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO_SECOND;
             }
             i++;
@@ -161,6 +193,8 @@ void Arucos::getDistortion(int id, cv::Point2f& distortion) {
         throw std::out_of_range("Aruco " + std::to_string(id) + " is not a robot");
     }
     // distortion = this->getPosition(id, true, true) - this->getPosition(id, true, false);
+    /* the distortion is deduced from the real position using
+    the Thales theorem */
     distortion = ((*this)[id] - CAMERA_POS) * ROBOTS_RATIO_FIRST;
 }
 
