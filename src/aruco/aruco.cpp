@@ -1,6 +1,7 @@
 #include "aruco.hpp"
 
-#define ROBOTS_RATIO (1 - ROBOTS_ARUCO_Z / CAMERA_Z)
+#define ROBOTS_RATIO_FIRST (1.0f / (CAMERA_Z / ROBOTS_ARUCO_Z - 1.0f))
+#define ROBOTS_RATIO_SECOND (1.0f - ROBOTS_ARUCO_Z / CAMERA_Z)
 
 const cv::aruco::Dictionary Arucos::dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
 const cv::aruco::DetectorParameters Arucos::detectorParams = cv::aruco::DetectorParameters();
@@ -26,6 +27,12 @@ void Arucos::nextFrame(cv::Mat& image) {
 
     for (i = 0; i < ids.size(); i++) {
         const int id = ids[i];
+        if ((id >= Arucos::ROBOTS_MIN && id <= Arucos::ROBOTS_MAX) && id != 6) {
+            ids.erase(ids.begin() + i);
+            corners.erase(corners.begin() + i);
+            i--;
+            continue;
+        }
 
         cv::Point2f center(0, 0);
         for (cv::Point2f& corner : corners[i]) {
@@ -63,13 +70,17 @@ void Arucos::nextFrame(cv::Mat& image) {
                 while (i > 0 && (last = elem.second.real[i], last.x < 0)) {
                     i--;
                 }
-                if (i < ARUCO_POS_MEMORY - 1) {
-                    i++;
+                if (last.x < 0) {
+                    if (i < ARUCO_POS_MEMORY - 1) {
+                        i++;
+                    }
+                    for (j = i; j > 0; j--) {
+                        elem.second.real[j] = elem.second.real[j - 1];
+                    }
+                    elem.second.real[0] += (elem.second.real[0] - last) / (float) i;
+                } else {
+                    /* we do not know where the element is and we only know its previous position: assuming it did not move */
                 }
-                for (j = i; j > 0; j--) {
-                    elem.second.real[j] = elem.second.real[j - 1];
-                }
-                elem.second.real[0] += (elem.second.real[0] - last) / (float) (ARUCO_POS_MEMORY - 1);
             }
         }
     }
@@ -142,7 +153,7 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool 
             if (elem.first < Arucos::ROBOTS_MIN || elem.first > Arucos::ROBOTS_MAX) {
                 elem.second.real[0] = centers[i];
             } else {
-                elem.second.real[0] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO;
+                elem.second.real[0] = CAMERA_POS + (centers[i] - CAMERA_POS) * ROBOTS_RATIO_SECOND;
             }
             i++;
         }
@@ -152,7 +163,11 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool 
 }
 
 void Arucos::getDistortion(int id, cv::Point2f& distortion) {
-    distortion = this->getPosition(id, true, true) - this->getPosition(id, true, false);
+    if (id < Arucos::ROBOTS_MIN || id > Arucos::ROBOTS_MAX) {
+        throw std::out_of_range("Aruco " + std::to_string(id) + " is not a robot");
+    }
+    // distortion = this->getPosition(id, true, true) - this->getPosition(id, true, false);
+    distortion = ((*this)[id] - CAMERA_POS) * ROBOTS_RATIO_FIRST;
 }
 
 void Arucos::draw(cv::Mat& input) {
