@@ -5,8 +5,7 @@ Vision Camera Code for the French Robotics Cup 🏆🇫🇷
 > [!WARNING]
 > This project is under development and is not yet optimized.
 
-| ![From](resources/photos/plank-robot3.jpg) | ![To](resources/results/plank-robot3.png) |
-|----------------------------|--------------------------|
+![Demo](https://github.com/abadiet/Vision-CDFR/blob/bdbf1323acde8e1ba920f9adcdf4916d1043b7df/resources/demo.gif)
 
 ## Benchmark
 
