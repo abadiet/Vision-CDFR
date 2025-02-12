@@ -27,12 +27,6 @@ void Arucos::nextFrame(cv::Mat& image) {
 
     for (i = 0; i < ids.size(); i++) {
         const int id = ids[i];
-        if ((id >= Arucos::ROBOTS_MIN && id <= Arucos::ROBOTS_MAX) && id != 6) {
-            ids.erase(ids.begin() + i);
-            corners.erase(corners.begin() + i);
-            i--;
-            continue;
-        }
 
         cv::Point2f center(0, 0);
         for (cv::Point2f& corner : corners[i]) {
