@@ -24,8 +24,19 @@
 // });
 
 
-/* buffers */
-cv::Mat Planks::filtered;
+/* buffer */
+Mat Planks::filtered;
+#ifdef CUDA
+cv::Mat Planks::filteredMat;
+#endif
+
+/* filters */
+const cv::Mat Planks::openKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+const cv::Mat Planks::closeKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41));
+#ifdef CUDA
+const cv::Ptr<cv::cuda::Filter> Planks::morphOpen = cv::cuda::createMorphologyFilter(cv::MORPH_OPEN, cv::CV_8UC1, Planks::openKernel);
+const cv::Ptr<cv::cuda::Filter> Planks::morphClose = cv::cuda::createMorphologyFilter(cv::MORPH_CLOSE, cv::CV_8UC1, Planks::closeKernel);
+#endif
 
 /**
  * @brief Get the filtered image

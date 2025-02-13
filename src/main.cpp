@@ -7,8 +7,8 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
-#define NFRAME 50
-#define VIDEO_OFFSET 100
+#define NFRAME -1 /* -1 for all the frames */
+#define VIDEO_OFFSET 1 /* non null offset */
 
 
 int main(int argc, char** argv) {
