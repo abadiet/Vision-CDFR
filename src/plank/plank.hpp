@@ -32,7 +32,7 @@ class Planks {
          * @param contours retrieve the contours detected on the image
          * @return the planks detected
          */
-        static std::vector<plank> Get(cv::Mat& base, cv::Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours = nullptr);
+        static std::vector<plank> Get(Mat& base, Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours = nullptr);
 
         /**
          * @brief Draw the planks on the image
@@ -49,10 +49,21 @@ class Planks {
          */
         static void Print(std::ostream& os, std::vector<plank>& planks);
 
+        /* filters' kernels */
+        static const cv::Mat openKernel, closeKernel;
+
     private:
 
-        /* buffers */
-        static cv::Mat filtered;
+        /* buffer */
+        static Mat filtered;
+#ifdef CUDA
+        static cv::Mat filteredMat;
+#endif
+
+        /* filters */
+#ifdef CUDA
+        static const cv::Ptr<cv::cuda::Filter> morphOpen, morphClose;
+#endif
 
 };
 
