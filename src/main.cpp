@@ -1,7 +1,4 @@
 #include <opencv2/opencv.hpp>
-#ifdef CUDA
-#include "opencv2/gpu/gpu.hpp"
-#endif
 #include <iostream>
 #include "aruco/aruco.hpp"
 #include "plank/plank.hpp"
@@ -72,14 +69,22 @@ int main(int argc, char** argv) {
     }
 
     /* warp the base image */
+#ifndef CUDA
     baseArucos.nextFrame(base);
+#else
+    baseArucos.nextFrame(baseMat);
+#endif
     baseArucos.warp(base, base);
 
     /* warp the first frame to get the tranformation matrix */
     /* By setting up the transformation matrix only once, we assume
     that the camera is fixed. Otherwise, we need to update the matrix
     for each frame which might be computationally expensive. */
+#ifndef CUDA
     arucos.nextFrame(frame);
+#else
+    arucos.nextFrame(frameMat);
+#endif
     arucos.warp(frame, frame, false);
 
     iframe = VIDEO_OFFSET;
@@ -98,7 +103,11 @@ int main(int argc, char** argv) {
 
         /* get the arucos position as well as their real position in space
         and warp the frame with the former tranformation matrix */
+#ifndef CUDA
         arucos.nextFrame(frame);
+#else
+        arucos.nextFrame(frameMat);
+#endif
         arucos.warp(frame, frame, true);
 
         /* get the planks */
@@ -112,7 +121,7 @@ int main(int argc, char** argv) {
         Planks::Draw(frame, planks);
         outputVideo.write(frame);
 #else
-        frameMat.download(frame);
+        frame.download(frameMat);
         arucos.draw(frameMat);
         Planks::Draw(frameMat, planks);
         outputVideo.write(frameMat);

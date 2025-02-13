@@ -5,6 +5,9 @@
 #include <opencv2/aruco.hpp>
 #include <map>
 #include "../utils/utils.hpp"
+#ifdef CUDA
+#include <opencv2/cudawarping.hpp>
+#endif
 
 #define ARUCO_POS_MEMORY 5  /* to adjust relatively to the speed of the moving objects */
 
@@ -71,7 +74,7 @@ class Arucos {
          * @param usePreviousMatrix if true, use the previous transformation matrix
          * @param forceUpdateMatrix if true, force the update of the transformation matrix
          */
-        void warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix = false, bool forceUpdateMatrix = false);
+        void warp(Mat& input, Mat& output, bool usePreviousMatrix = false, bool forceUpdateMatrix = false);
 
         /**
          * @brief Get the distortion of the element id

@@ -21,7 +21,8 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 target_compile_options(${PROJECT_NAME} PRIVATE
 	$<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-	$<$<NOT:$<CXX_COMPILER_ID:MSVC>>: -O3 -Wall -Wextra -Werror -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wconversion -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2 -Weverything -Wextra-semi -Wmissing-prototypes -Wunreachable-code-aggressive -Wimplicit-fallthrough -Wloop-analysis -Wrange-loop-analysis -Wcomma -Wmove -Wconditional-uninitialized -Wassign-enum -Wunused-exception-parameter -Wcovered-switch-default -Wno-error=c++98-compat -Wno-error=global-constructors -Wno-error=exit-time-destructors -Wno-error=padded>
+	$<$<CXX_COMPILER_ID:Clang>:-O3 -Wall -Wextra -Werror -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wconversion -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2 -Weverything -Wextra-semi -Wmissing-prototypes -Wunreachable-code-aggressive -Wimplicit-fallthrough -Wloop-analysis -Wrange-loop-analysis -Wcomma -Wmove -Wconditional-uninitialized -Wassign-enum -Wunused-exception-parameter -Wcovered-switch-default -Wno-error=c++98-compat -Wno-error=global-constructors -Wno-error=exit-time-destructors -Wno-error=padded>
+	$<$<CXX_COMPILER_ID:Gnu>: -O3 -Wall -Wextra -Werror -Wfloat-equal -Wundef -Wcast-align -Wwrite-strings -Wconversion -Wunreachable-code -Wpedantic -Wshadow -Wwrite-strings -Wcast-qual -Wstrict-aliasing -Wpointer-arith -Wformat=2 -Wextra-semi -Wmissing-prototypes -Wimplicit-fallthrough -Wno-error=c++98-compat -Wno-error=global-constructors -Wno-error=exit-time-destructors -Wno-error=padded>
 )
 if (CUDA)
 	target_compile_definitions(${PROJECT_NAME} PRIVATE CUDA)

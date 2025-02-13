@@ -34,18 +34,9 @@ cv::Mat Planks::filteredMat;
 const cv::Mat Planks::openKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
 const cv::Mat Planks::closeKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41));
 #ifdef CUDA
-const cv::Ptr<cv::cuda::Filter> Planks::morphOpen = cv::cuda::createMorphologyFilter(cv::MORPH_OPEN, cv::CV_8UC1, Planks::openKernel);
-const cv::Ptr<cv::cuda::Filter> Planks::morphClose = cv::cuda::createMorphologyFilter(cv::MORPH_CLOSE, cv::CV_8UC1, Planks::closeKernel);
+const cv::Ptr<cv::cuda::Filter> Planks::morphOpen = cv::cuda::createMorphologyFilter(cv::MORPH_OPEN, CV_8UC1, Planks::openKernel);
+const cv::Ptr<cv::cuda::Filter> Planks::morphClose = cv::cuda::createMorphologyFilter(cv::MORPH_CLOSE, CV_8UC1, Planks::closeKernel);
 #endif
-
-/**
- * @brief Get the filtered image
- * @param base the base image
- * @param image the image to process
- * @param arucos the arucos on the image
- * @param filtered the resulting filtered image
- */
-void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered);
 
 
 /**
@@ -60,7 +51,7 @@ void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
 bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold);
 
 
-void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered) {
+void Planks::GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, Mat& filtered) {
     cv::Point2f distortion;
     unsigned int i;
 
@@ -83,7 +74,10 @@ void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
 #ifndef CUDA
             cv::line(filtered, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), ROBOTS_DIAMETER);
 #else
-            cv::cuda::line(filtered, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), ROBOTS_DIAMETER);
+            /* TODO to optimize */
+            filtered.download(filteredMat);
+            cv::line(filteredMat, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), ROBOTS_DIAMETER);
+            filtered.upload(filteredMat);
 #endif
         } catch (const std::exception& e) {
             /* robot not found */

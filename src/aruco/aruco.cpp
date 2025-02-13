@@ -135,7 +135,7 @@ cv::Point2f& Arucos::getPosition(int id, bool projected, bool aruco) {
     return elements[id].real[0];
 }
 
-void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool forceUpdateMatrix) {
+void Arucos::warp(Mat& input, Mat& output, bool usePreviousMatrix, bool forceUpdateMatrix) {
     std::vector<cv::Point2f> src(4), centers;
     unsigned int i;
 
@@ -160,7 +160,11 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool 
     }
 
     /* warp the image */
+#ifndef CUDA
     cv::warpPerspective(input, output, transformMatrix, cv::Size(3000, 2000));
+#else
+    cv::cuda::warpPerspective(input, output, transformMatrix, cv::Size(3000, 2000));
+#endif
 
     /* update the elements with their warpped position */
     for (const std::pair<const int, Arucos::element>& elem : elements) {

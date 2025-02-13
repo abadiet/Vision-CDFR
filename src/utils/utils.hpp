@@ -24,7 +24,7 @@
 #ifndef CUDA
 typedef cv::Mat Mat;
 #else
-typedef cv::gpu::GpuMat Mat;
+typedef cv::cuda::GpuMat Mat;
 #endif
 
 /**

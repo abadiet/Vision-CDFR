@@ -6,6 +6,11 @@
 #include <iostream>
 #include "../aruco/aruco.hpp"
 #include "../utils/utils.hpp"
+#ifdef CUDA
+#include <opencv2/cudafilters.hpp>
+#include <opencv2/cudaarithm.hpp>
+#include <opencv2/cudaimgproc.hpp>
+#endif
 
 
 /**
@@ -49,8 +54,14 @@ class Planks {
          */
         static void Print(std::ostream& os, std::vector<plank>& planks);
 
-        /* filters' kernels */
-        static const cv::Mat openKernel, closeKernel;
+        /**
+         * @brief Get the filtered image
+         * @param base the base image
+         * @param image the image to process
+         * @param arucos the arucos on the image
+         * @param filtered the resulting filtered image
+         */
+        static void GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, Mat& filtered);
 
     private:
 
@@ -60,7 +71,8 @@ class Planks {
         static cv::Mat filteredMat;
 #endif
 
-        /* filters */
+        /* filters' kernels */
+        static const cv::Mat openKernel, closeKernel;
 #ifdef CUDA
         static const cv::Ptr<cv::cuda::Filter> morphOpen, morphClose;
 #endif
