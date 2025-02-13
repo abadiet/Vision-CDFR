@@ -55,7 +55,7 @@ void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
     }
 
     /* remove the alone pixels */
-    cv::morphologyEx(filtered, filtered, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(11, 11)));
+    cv::morphologyEx(filtered, filtered, cv::MORPH_OPEN, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5)));
 
     /* fill the surfaces */
     cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41)));
