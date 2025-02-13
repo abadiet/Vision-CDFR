@@ -21,6 +21,12 @@
 
 #define UNUSED(x) (void)(x)
 
+#ifndef CUDA
+typedef cv::Mat Mat;
+#else
+typedef cv::gpu::GpuMat Mat;
+#endif
+
 /**
  * @brief Display an image in a window
  * @param name: the name of the window
