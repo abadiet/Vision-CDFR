@@ -7,8 +7,8 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
-#define NFRAME 200
-#define VIDEO_OFFSET 150
+#define NFRAME -1
+#define VIDEO_OFFSET 1
 
 
 int main(int argc, char** argv) {
@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
         iframe++;
     }
 
-    std::cout << "Avg. processing time " << elapsed.count() / (double) (iframe - VIDEO_OFFSET) << "s" << std::endl;
+    std::cout << "Avg. processing time " << elapsed.count() / static_cast<double>(iframe - VIDEO_OFFSET) << "s" << std::endl;
 
     capture.release();
     outputVideo.release();

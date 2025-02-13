@@ -26,26 +26,26 @@ class Planks {
 
         /**
          * @brief Get the planks from the image
-         * @param base: the base image
-         * @param image: the image to process
-         * @param arucos: the arucos on the image
-         * @param contours: retrieve the contours detected on the image
+         * @param base the base image
+         * @param image the image to process
+         * @param arucos the arucos on the image
+         * @param contours retrieve the contours detected on the image
          * @return the planks detected
          */
         static std::vector<plank> Get(Mat& base, Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours = nullptr);
 
         /**
          * @brief Draw the planks on the image
-         * @param image: the image to draw on
-         * @param planks: the planks to draw
-         * @param contours: the contours to draw
+         * @param image the image to draw on
+         * @param planks the planks to draw
+         * @param contours the contours to draw
          */
         static void Draw(cv::Mat& image, std::vector<plank>& planks, std::vector<std::vector<cv::Point>>* contours = nullptr);
 
         /**
          * @brief Print the planks
-         * @param os: the output stream
-         * @param planks: the planks to print
+         * @param os the output stream
+         * @param planks the planks to print
          */
         static void Print(std::ostream& os, std::vector<plank>& planks);
 

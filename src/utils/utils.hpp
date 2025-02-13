@@ -15,7 +15,7 @@
 #define N_CONTROL_POINTS 16
 #define N_CONTROL_POINTS_THRESHOLD 4
 
-#define MIN_DST_ROBOTS_PLANK 200.0f
+#define MIN_DST_ROBOTS_PLANK 200.0
 #define ROBOTS_DIAMETER 350 /* slightly larger to cover the whole shape */
 #define ROBOTS_HEIGHT 350.0f
 
@@ -29,8 +29,8 @@ typedef cv::gpu::GpuMat Mat;
 
 /**
  * @brief Display an image in a window
- * @param name: the name of the window
- * @param image: the image to display
+ * @param name the name of the window
+ * @param image the image to display
  */
 void ShowImage(const std::string& name, cv::Mat& image);
 
