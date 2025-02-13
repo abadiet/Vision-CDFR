@@ -7,6 +7,10 @@ Vision Camera Code for the French Robotics Cup 🏆🇫🇷
 
 ![Demo](https://github.com/abadiet/Vision-CDFR/blob/bdbf1323acde8e1ba920f9adcdf4916d1043b7df/resources/demo.gif)
 
+## Dependencies
+
+- [OpenCV](https://opencv.org)
+
 ## Benchmark
 
 | Architecture            | FPS    |
