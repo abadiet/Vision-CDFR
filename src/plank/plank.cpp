@@ -4,8 +4,9 @@
 #define PLANK_DIAGONAL_ANGLE (float) atan(PLANK_l / PLANK_L)
 #define PLANK_DIAGONAL_ANGLE_COS (float) cos(PLANK_DIAGONAL_ANGLE)
 #define PLANK_DIAGONAL_ANGLE_SIN (float) sin(PLANK_DIAGONAL_ANGLE)
-#define MIN_PLANK_AREA PLANK_L * PLANK_l
-#define MAX_PLANK_AREA PLANK_L * PLANK_l
+#define MIN_PLANK_AREA PLANK_L * PLANK_l * 0.8f
+#define PLANK_SAME_MAX_DST PLANK_l
+#define PLANK_SAME_MAX_TAN_ANG (float) tan(0.6f) /* 35deg */
 #define ROBOTS_RATIO ROBOTS_HEIGHT / ROBOTS_ARUCO_Z
 // #define INIT_PLANKS_RATIO 1.2f
 
@@ -138,8 +139,13 @@ bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
         if (missed < threshold) {
             /* a plank is found */
             const cv::Point2f line = p12 / cv::norm(p12);
-            plank.center = p1 - line * PLANK_L / 2.0f + cv::Point2f(-1 * rectSens * line.y, rectSens * line.x) * PLANK_l / 2.0f;
-            plank.direction = line;
+            plank.center = p1 - line * PLANK_L / 2.0f + cv::Point2f(-1.0f * rectSens * line.y, rectSens * line.x) * PLANK_l / 2.0f;
+            /* normalization of the direction */
+            if (line.x < 0.0f || (line.x == 0.0f && line.y < 0.0f)) {
+                plank.direction = -line;
+            } else {
+                plank.direction = line;
+            }
             return true;
         }
     }
@@ -195,15 +201,14 @@ std::vector<Planks::plank> Planks::Get(Mat& base, Mat& image, Arucos& arucos, st
                     if (contours != nullptr) {
                         contours->push_back(contour);
                     }
-                } else {
-                    /* check if p2 can be the corner of a plank with p2p1 as its direction */
-                    if (FindPossiblePlank(plank, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
-                        /* found one */
-                        planks.push_back(plank);
+                }
+                /* check if p2 can be the corner of a plank with p2p1 as its direction */
+                if (FindPossiblePlank(plank, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                    /* found one */
+                    planks.push_back(plank);
 
-                        if (contours != nullptr) {
-                            contours->push_back(contour);
-                        }
+                    if (contours != nullptr) {
+                        contours->push_back(contour);
                     }
                 }
             }
@@ -240,8 +245,8 @@ std::vector<Planks::plank> Planks::Get(Mat& base, Mat& image, Arucos& arucos, st
                 const Planks::plank& p = planks[j];
 
                 /* if p is close to planks[j] */
-                if (cv::norm(p.center - plank.center) < PLANK_l) {
-                    if  (cv::norm(p.direction - plank.direction) < 0.1) {
+                if (cv::norm(p.center - plank.center) < PLANK_SAME_MAX_DST) {
+                    if (cv::norm(p.direction - plank.direction) < PLANK_SAME_MAX_TAN_ANG) {
                         /* planks[j] is now the average of both and
                         remove p */
                         plank.center = (plank.center + p.center) / 2;
