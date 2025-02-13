@@ -81,7 +81,10 @@ void Arucos::nextFrame(cv::Mat& image) {
 
                 /* find the last known real position */
                 i = ARUCO_POS_MEMORY - 1;
-                while (i > 0 && (last = elem.second.real[i], last.x < 0)) {
+                last = elem.second.real[i];
+                i--;
+                while (i > 0 && last.x < 0) {
+                    last = elem.second.real[i];
                     i--;
                 }
                 if (last.x < 0) {
@@ -94,7 +97,7 @@ void Arucos::nextFrame(cv::Mat& image) {
                     for (j = i; j > 0; j--) {
                         elem.second.real[j] = elem.second.real[j - 1];
                     }
-                    elem.second.real[0] += (elem.second.real[0] - last) / (float) i;
+                    elem.second.real[0] += (elem.second.real[0] - last) / static_cast<float>(i);
                 } else {
                     /* we do not know where the element is and we only know its previous position: assuming it did not move */
                 }
@@ -145,7 +148,7 @@ void Arucos::warp(cv::Mat& input, cv::Mat& output, bool usePreviousMatrix, bool 
             src[3] = this->getPosition(Arucos::CENTER_BOTTOM_RIGHT, false);
         } catch (const std::exception& e) {
             if (forceUpdateMatrix || transformMatrix.empty()) {
-                throw std::runtime_error("Not all center markers found!");
+                throw std::runtime_error("Not all center markers found!" + std::string(e.what()));
             } else {
                 src.clear();
             }
@@ -215,6 +218,7 @@ void Arucos::draw(cv::Mat& input) {
             cv::circle(input, (*this)[i], 150, cv::Scalar(0, 255, 0), 2);
         } catch (const std::exception& e) {
             /* robot not found */
+            UNUSED(e);
         }
     }
 }

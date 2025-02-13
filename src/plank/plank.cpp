@@ -1,12 +1,12 @@
 #include "plank.hpp"
 
-#define PLANK_DIAGONAL (float) sqrt(PLANK_L * PLANK_L + PLANK_l * PLANK_l)
-#define PLANK_DIAGONAL_ANGLE (float) atan(PLANK_l / PLANK_L)
-#define PLANK_DIAGONAL_ANGLE_COS (float) cos(PLANK_DIAGONAL_ANGLE)
-#define PLANK_DIAGONAL_ANGLE_SIN (float) sin(PLANK_DIAGONAL_ANGLE)
-#define MIN_PLANK_AREA PLANK_L * PLANK_l * 0.8f
-#define PLANK_SAME_MAX_DST PLANK_l
-#define PLANK_SAME_MAX_TAN_ANG (float) tan(0.6f) /* 35deg */
+#define PLANK_DIAGONAL static_cast<float> (sqrt(PLANK_L * PLANK_L + PLANK_l * PLANK_l))
+#define PLANK_DIAGONAL_ANGLE static_cast<float> (atan(PLANK_l / PLANK_L))
+#define PLANK_DIAGONAL_ANGLE_COS static_cast<float> (cos(PLANK_DIAGONAL_ANGLE))
+#define PLANK_DIAGONAL_ANGLE_SIN static_cast<float> (sin(PLANK_DIAGONAL_ANGLE))
+#define MIN_PLANK_AREA static_cast<double> (PLANK_L * PLANK_l * 0.8f)
+#define PLANK_SAME_MAX_DST static_cast<double> (PLANK_l)
+#define PLANK_SAME_MAX_TAN_ANG static_cast<double> (tan(0.6)) /* 35deg */
 #define ROBOTS_RATIO ROBOTS_HEIGHT / ROBOTS_ARUCO_Z
 // #define INIT_PLANKS_RATIO 1.2f
 
@@ -29,11 +29,26 @@ cv::Mat Planks::filtered;
 
 /**
  * @brief Get the filtered image
- * @param base: the base image
- * @param image: the image to process
- * @param arucos: the arucos on the image
- * @param filtered: the resulting filtered image
+ * @param base the base image
+ * @param image the image to process
+ * @param arucos the arucos on the image
+ * @param filtered the resulting filtered image
  */
+void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered);
+
+
+/**
+ * @brief Check if p1 can be the corner of a plank with p1p2 as its direction
+ * @param plank the resulting plank
+ * @param p1 the first point
+ * @param p2 the second point
+ * @param contour the contour to check
+ * @param Nchecks the number of checks per diagonal
+ * @param threshold the threshold of missed checks
+ */
+bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold);
+
+
 void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& filtered) {
     cv::Point2f distortion;
     unsigned int i;
@@ -46,11 +61,12 @@ void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
     /* hide the robots */
     for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
         try {
-            arucos.getDistortion((int) i, distortion);
-            const cv::Point2f& pos = arucos[(int) i];
+            arucos.getDistortion(static_cast<int> (i), distortion);
+            const cv::Point2f& pos = arucos[static_cast<int> (i)];
             cv::line(filtered, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), ROBOTS_DIAMETER);
         } catch (const std::exception& e) {
             /* robot not found */
+            UNUSED(e);
         }
     }
 
@@ -61,19 +77,10 @@ void GetFilteredImage(cv::Mat& base, cv::Mat& image, Arucos& arucos, cv::Mat& fi
     cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41)));
 }
 
-/**
- * @brief Check if p1 can be the corner of a plank with p1p2 as its direction
- * @param plank: the resulting plank
- * @param p1: the first point
- * @param p2: the second point
- * @param contour: the contour to check
- * @param Nchecks: the number of checks per diagonal
- * @param threshold: the threshold of missed checks
- */
 bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold) {
     unsigned int missed, i;
     short int rectSens, diagSens;
-    const float step = PLANK_DIAGONAL / Nchecks;
+    const float step = PLANK_DIAGONAL / static_cast<float> (Nchecks);
     const cv::Point2f p12 = p1 - p2;
 
     /* test both sides of the line p1-p2 */
@@ -93,7 +100,7 @@ bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
             i = 0;
             /* for each test points */
             while (i < Nchecks && missed < threshold) {
-                const cv::Point2f p = start + direction * (float) i * step;
+                const cv::Point2f p = start + direction * static_cast<float> (i) * step;
                 if (cv::pointPolygonTest(contour, p, false) < 0) {
                     missed++;
                     if (missed >= threshold) {
@@ -131,14 +138,14 @@ bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Po
 //     for (const std::vector<cv::Point2f>& plank : initPlanksPos) {
 //         const cv::Point2f& center = plank[0];
 //         const cv::Point2f& halfPlank = plank[1] / cv::norm(plank[1]) * PLANK_L * INIT_PLANKS_RATIO / 2.0f;
-//         cv::line(image, center, center + halfPlank, cv::Scalar(0), (int) (PLANK_l * INIT_PLANKS_RATIO));
-//         cv::line(image, center, center - halfPlank, cv::Scalar(0), (int) (PLANK_l * INIT_PLANKS_RATIO));
+//         cv::line(image, center, center + halfPlank, cv::Scalar(0), static_cast<int> ((PLANK_l * INIT_PLANKS_RATIO)));
+//         cv::line(image, center, center - halfPlank, cv::Scalar(0), static_cast<int> ((PLANK_l * INIT_PLANKS_RATIO)));
 //     }
 // }
 
 std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& arucos, std::vector<std::vector<cv::Point>>* contours) {
     std::vector<Planks::plank> planks;
-    Planks::plank plank;
+    Planks::plank plk;
     std::vector<std::vector<cv::Point>> conts;
     std::vector<cv::Point2f> robotsPos;
     unsigned int i, j;
@@ -164,18 +171,18 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
                 const cv::Point2f& p2 = contour[(i + 1) % contour.size()];
 
                 /* check if p1 can be the corner of a plank with p1p2 as its direction */
-                if (FindPossiblePlank(plank, p1, p2, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                if (FindPossiblePlank(plk, p1, p2, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
                     /* found one */
-                    planks.push_back(plank);
+                    planks.push_back(plk);
 
                     if (contours != nullptr) {
                         contours->push_back(contour);
                     }
                 }
                 /* check if p2 can be the corner of a plank with p2p1 as its direction */
-                if (FindPossiblePlank(plank, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
+                if (FindPossiblePlank(plk, p2, p1, contour, N_CONTROL_POINTS, N_CONTROL_POINTS_THRESHOLD)) {
                     /* found one */
-                    planks.push_back(plank);
+                    planks.push_back(plk);
 
                     if (contours != nullptr) {
                         contours->push_back(contour);
@@ -188,10 +195,11 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
     /* get the robots positions */
     for (i = Arucos::ROBOTS_MIN; i <= Arucos::ROBOTS_MAX; i++) {
         try {
-            const cv::Point2f& arucoCenter = arucos[(int) i];
+            const cv::Point2f& arucoCenter = arucos[static_cast<int> (i)];
             robotsPos.push_back(arucoCenter);
         } catch (const std::exception& e) {
             /* robot not found */
+            UNUSED(e);
         }
     }
 
