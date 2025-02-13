@@ -7,8 +7,8 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
-#define NFRAME -1
-#define VIDEO_OFFSET 1
+#define NFRAME 50
+#define VIDEO_OFFSET 100
 
 
 int main(int argc, char** argv) {
@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
     unsigned int iframe;
     // std::vector<std::vector<cv::Point>> contours;
 
+    if (argc != 4) {
     if (argc != 4) {
         std::cout << "usage: Vision <base_image> <input_video> <output_video>" << std::endl;
         return 1;
