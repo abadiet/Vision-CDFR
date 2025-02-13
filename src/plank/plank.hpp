@@ -52,7 +52,7 @@ class Planks {
     private:
 
         /* buffers */
-        static cv::Mat filtered, canny_output;
+        static cv::Mat filtered;
 
 };
 
