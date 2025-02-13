@@ -16,7 +16,7 @@
 #define N_CONTROL_POINTS_THRESHOLD 4
 
 #define MIN_DST_ROBOTS_PLANK 200.0f
-#define ROBOTS_DIAMETER 300
+#define ROBOTS_DIAMETER 350 /* slightly larger to cover the whole shape */
 #define ROBOTS_HEIGHT 350.0f
 
 #define UNUSED(x) (void)(x)

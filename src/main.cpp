@@ -5,8 +5,8 @@
 #include "plank/plank.hpp"
 #include "utils/utils.hpp"
 
-#define NFRAME 200
-#define VIDEO_OFFSET 150
+#define NFRAME -1
+#define VIDEO_OFFSET 1
 
 
 int main(int argc, char** argv) {
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     unsigned int iframe;
     // std::vector<std::vector<cv::Point>> contours;
 
-    if ( argc != 4 ) {
+    if (argc != 4) {
         std::cout << "usage: Vision <base_image> <input_video> <output_video>" << std::endl;
         return 1;
     }
@@ -81,8 +81,8 @@ int main(int argc, char** argv) {
         const auto end = std::chrono::high_resolution_clock::now();
         elapsed += end - start;
 
-        // arucos.draw(frame);
-        // Planks::Draw(frame, planks);
+        arucos.draw(frame);
+        Planks::Draw(frame, planks);
         // arucos.print(std::cout);
 
         outputVideo.write(frame);

@@ -147,8 +147,7 @@ std::vector<Planks::plank> Planks::Get(cv::Mat& base, cv::Mat& image, Arucos& ar
     GetFilteredImage(base, image, arucos, filtered);
 
     /* get the contours */
-    cv::Canny(filtered, canny_output, 250, 250);
-    cv::findContours(canny_output, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
+    cv::findContours(filtered, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
     /* for each contour */
     for (std::vector<cv::Point>& contour : conts) {
