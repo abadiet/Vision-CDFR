@@ -27,7 +27,6 @@ int main(int argc, char** argv) {
     // std::vector<std::vector<cv::Point>> contours;
 
     if (argc != 4) {
-    if (argc != 4) {
         std::cout << "usage: Vision <base_image> <input_video> <output_video>" << std::endl;
         return 1;
     }
