@@ -11,10 +11,6 @@ Vision Camera Code for the French Robotics Cup 🏆🇫🇷
 
 - [OpenCV](https://opencv.org)
 
-## Dependencies
-
-- [OpenCV](https://opencv.org)
-
 ## Benchmark
 
 | Architecture            | FPS    |
