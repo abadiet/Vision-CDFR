@@ -37,7 +37,9 @@ e.g.
 
 ## Benchmark
 
-| Architecture            | FPS    |
-|-------------------------|--------|
-| Apple M3 (CPU Only)     | 20     |
-| Jetson Orin Nano Super  | *soon* |
+| Architecture | FPS |
+|-|-|
+| Apple M3 (CPU Only) | 19.2 |
+| Intel Xeon W-2123 + NVIDIA Quadro P4000 | 15.4 |
+| Intel Xeon W-2123 | 10.0 |
+| Jetson Orin Nano Super | *soon* |
