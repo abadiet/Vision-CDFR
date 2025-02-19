@@ -12,17 +12,28 @@ Vision Camera Code for the French Robotics Cup 🏆🇫🇷
 
 ## Usage
 
+### Build
+
 ```
 mkdir build
 cd build
 cmake .. -DCUDA=ON
 make
-./Vision <base_image> <video_stream_in> <video_stream_out> 
+```
+
+### Run
+
+```
+./Vision <base_image> <video_stream_in> <video_stream_out>
+```
+e.g.
+```
+./Vision ../resources/camera/1102/base.png ../resources/camera/1102/1.mov out.mp4
 ```
 
 ## Dependencies
 
-- [OpenCV](https://opencv.org)
+- [OpenCV](https://opencv.org) with the [extra modules](https://github.com/opencv/opencv_contrib)
 
 ## Benchmark
 
