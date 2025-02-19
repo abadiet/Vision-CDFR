@@ -25,18 +25,14 @@
 
 
 /* buffer */
-Mat Planks::filtered;
+cv::Mat Planks::filtered;
 #ifdef CUDA
-cv::Mat Planks::filteredMat;
+cv::cuda::GpuMat Planks::filteredGpu;
 #endif
 
 /* filters */
 const cv::Mat Planks::openKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
 const cv::Mat Planks::closeKernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(41, 41));
-#ifdef CUDA
-const cv::Ptr<cv::cuda::Filter> Planks::morphOpen = cv::cuda::createMorphologyFilter(cv::MORPH_OPEN, CV_8UC1, Planks::openKernel);
-const cv::Ptr<cv::cuda::Filter> Planks::morphClose = cv::cuda::createMorphologyFilter(cv::MORPH_CLOSE, CV_8UC1, Planks::closeKernel);
-#endif
 
 
 /**
@@ -51,7 +47,7 @@ const cv::Ptr<cv::cuda::Filter> Planks::morphClose = cv::cuda::createMorphologyF
 bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold);
 
 
-void Planks::GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, Mat& filtered) {
+void Planks::GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, cv::Mat& filtered) {
     cv::Point2f distortion;
     unsigned int i;
 
@@ -61,9 +57,10 @@ void Planks::GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, Mat& filter
     cv::cvtColor(filtered, filtered, cv::COLOR_BGR2GRAY);
     cv::threshold(filtered, filtered, 50, 255, cv::THRESH_BINARY);
 #else
-    cv::cuda::absdiff(base, image, filtered);
-    cv::cuda::cvtColor(filtered, filtered, cv::COLOR_BGR2GRAY);
-    cv::cuda::threshold(filtered, filtered, 50, 255, cv::THRESH_BINARY);
+    cv::cuda::absdiff(base, image, filteredGpu);
+    cv::cuda::cvtColor(filteredGpu, filteredGpu, cv::COLOR_BGR2GRAY);
+    cv::cuda::threshold(filteredGpu, filteredGpu, 50, 255, cv::THRESH_BINARY);
+    filteredGpu.download(filtered);
 #endif
 
     /* hide the robots */
@@ -71,14 +68,7 @@ void Planks::GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, Mat& filter
         try {
             arucos.getDistortion(static_cast<int> (i), distortion);
             const cv::Point2f& pos = arucos[static_cast<int> (i)];
-#ifndef CUDA
             cv::line(filtered, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), ROBOTS_DIAMETER);
-#else
-            /* TODO to optimize */
-            filtered.download(filteredMat);
-            cv::line(filteredMat, pos, pos + distortion * ROBOTS_RATIO, cv::Scalar(0), ROBOTS_DIAMETER);
-            filtered.upload(filteredMat);
-#endif
         } catch (const std::exception& e) {
             /* robot not found */
             UNUSED(e);
@@ -86,13 +76,8 @@ void Planks::GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, Mat& filter
     }
 
     /* remove the alone pixels and fill the surfaces */
-#ifndef CUDA
     cv::morphologyEx(filtered, filtered, cv::MORPH_OPEN, Planks::openKernel);
     cv::morphologyEx(filtered, filtered, cv::MORPH_CLOSE, Planks::closeKernel);
-#else
-    Planks::morphOpen->apply(filtered, filtered);
-    Planks::morphClose->apply(filtered, filtered);
-#endif
 }
 
 bool FindPossiblePlank(Planks::plank& plank, const cv::Point2f& p1, const cv::Point2f& p2, const std::vector<cv::Point>& contour, unsigned int Nchecks, unsigned int threshold) {
@@ -172,12 +157,7 @@ std::vector<Planks::plank> Planks::Get(Mat& base, Mat& image, Arucos& arucos, st
     GetFilteredImage(base, image, arucos, filtered);
 
     /* get the contours */
-#ifndef CUDA
     cv::findContours(filtered, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-#else
-    filtered.download(filteredMat);
-    cv::findContours(filteredMat, conts, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
-#endif
 
     /* for each contour */
     for (std::vector<cv::Point>& contour : conts) {

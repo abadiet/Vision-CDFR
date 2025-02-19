@@ -61,21 +61,18 @@ class Planks {
          * @param arucos the arucos on the image
          * @param filtered the resulting filtered image
          */
-        static void GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, Mat& filtered);
+        static void GetFilteredImage(Mat& base, Mat& image, Arucos& arucos, cv::Mat& filtered);
 
     private:
 
         /* buffer */
-        static Mat filtered;
+        static cv::Mat filtered;
 #ifdef CUDA
-        static cv::Mat filteredMat;
+        static cv::cuda::GpuMat filteredGpu;
 #endif
 
         /* filters' kernels */
         static const cv::Mat openKernel, closeKernel;
-#ifdef CUDA
-        static const cv::Ptr<cv::cuda::Filter> morphOpen, morphClose;
-#endif
 
 };
 
